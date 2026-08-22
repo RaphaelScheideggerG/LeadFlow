@@ -1,0 +1,18 @@
+# Ambiente virtual
+.venv/
+
+# Variáveis de ambiente
+.env
+
+# Credenciais
+*.json
+
+# Python
+__pycache__/
+*.py[cod]
+
+# IDE
+.vscode/
+
+# Key
+leadflow-key.json
