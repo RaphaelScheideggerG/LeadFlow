@@ -1,11 +1,13 @@
 from src.models.lead import Lead
 from src.data_process.lead_scorer import LeadScorer
+from src.data_process.website_resolver import WebSiteResolver
 
 
 class DataProcessor:
     def __init__(self):
         self.duplicated_names: set[str] = set()
         self.lead_scorer = LeadScorer()
+        self.resolve_website = WebSiteResolver()
 
     def get_names(self, leads: list[Lead]) -> list[str]:
         return [
@@ -48,6 +50,7 @@ class DataProcessor:
         return resultados_unicos
 
     def _build_lead(self, data: dict) -> Lead:
+        print(data)
         gps = data.get("gps_coordinates") or {}
         links = data.get("links") or {}
 
@@ -58,7 +61,7 @@ class DataProcessor:
 
             segmento=data.get("type", ""),
 
-            site=links.get("website"),
+            site = self.resolve_website.resolve_website(links.get("website")),
 
             ia_score=None,
             ia_justificativa=None,
