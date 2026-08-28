@@ -5,10 +5,11 @@ class Lead(BaseModel):
     nome_empresa: str
 
     telefone: str | None = None
+
     segmento: str | None = None
 
-    municipio: str | None = None
-    estado: str | None = None
+    ia_score: float | None = None
+    ia_justificativa: str | None = None
 
     site: str | None = None
 

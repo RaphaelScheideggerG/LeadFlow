@@ -184,26 +184,36 @@ Atualmente, o programa executa aproximadamente o seguinte processo:
 3. Extrai os nomes existentes.
 4. Utiliza esses nomes para evitar resultados já conhecidos durante a busca.
 5. Coleta novos resultados através da SerpAPI.
-6. Processa e deduplica os dados.
+6. Processa, deduplica e enriquece com IA os dados.
 7. Constrói objetos `Lead`.
 8. Salva apenas os novos leads na planilha.
 
 ```text
-Leads existentes
-      ↓
-Lista de exclusão
-      ↓
-Busca
-      ↓
-Resultados brutos
-      ↓
-Processamento
-      ↓
-Deduplicação
-      ↓
+SerpAPI
+   ↓ dados brutos
+DataProcessor
+   ↓
 Lead
-      ↓
-Google Sheets
+   ↓
+LeadScorer 🤖
+   ↓ ScoreOutput
+Lead enriquecido
+   ↓
+GoogleSheetsRepository
+   ↓
+┌──────────────────────┐
+│ Empresa              │
+│ Telefone             │
+│ Segmento             │
+│ IA Score 🤖          │
+│ Justificativa 🧠     │
+│ Site                 │
+│ Avaliação            │
+│ Qtd. avaliações      │
+│ Endereço             │
+│ Latitude             │
+│ Longitude            │
+└──────────────────────┘
 ```
 
 ---

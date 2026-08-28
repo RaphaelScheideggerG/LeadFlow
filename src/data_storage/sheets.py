@@ -47,14 +47,21 @@ class GoogleSheetsRepository:
 
             lead = Lead(
                 nome_empresa=row[0],
+
                 telefone=get_col(1),
+                
                 segmento=get_col(2),
-                municipio=get_col(3),
-                estado=get_col(4),
+
+                ia_score=self._parse_float(get_col(3)),
+                ia_justificativa=get_col(4),
+
                 site=get_col(5),
+
                 avaliacao=avaliacao,
                 quantidade_avaliacoes=quantidade_avaliacoes,
+
                 endereco=get_col(8),
+
                 latitude=latitude,
                 longitude=longitude,
             )
@@ -68,14 +75,20 @@ class GoogleSheetsRepository:
         rows = [
             [
                 lead.nome_empresa,
+
                 lead.telefone or "",
                 lead.segmento or "",
-                lead.municipio or "",
-                lead.estado or "",
+
+                lead.ia_score if lead.ia_score is not None else "",
+                lead.ia_justificativa or "",
+
                 lead.site or "",
+
                 lead.avaliacao if lead.avaliacao is not None else "",
                 lead.quantidade_avaliacoes if lead.quantidade_avaliacoes is not None else "",
+
                 lead.endereco or "",
+
                 lead.latitude if lead.latitude is not None else "",
                 lead.longitude if lead.longitude is not None else "",
             ]

@@ -1,8 +1,11 @@
 from src.models.lead import Lead
+from src.data_process.lead_scorer import LeadScorer
+
 
 class DataProcessor:
     def __init__(self):
         self.duplicated_names: set[str] = set()
+        self.lead_scorer = LeadScorer()
 
     def get_names(self, leads: list[Lead]) -> list[str]:
         return [
@@ -48,16 +51,30 @@ class DataProcessor:
         gps = data.get("gps_coordinates") or {}
         links = data.get("links") or {}
 
-        return Lead(
+        lead = Lead(
             nome_empresa=data.get("title", "").strip(),
+
             telefone=data.get("phone"),
+
             segmento=data.get("type", ""),
-            municipio=None,
-            estado=None,
+
             site=links.get("website"),
+
+            ia_score=None,
+            ia_justificativa=None,
+
             avaliacao=data.get("rating"),
             quantidade_avaliacoes=data.get("reviews"),
+
             endereco=data.get("address"),
             latitude=gps.get("latitude"),
             longitude=gps.get("longitude"),
         )
+
+        score = self.lead_scorer.evaluate(lead)
+        
+        if score:
+            lead.ia_score = score.ia_score
+            lead.ia_justificativa = score.justificativa
+
+        return lead

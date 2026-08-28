@@ -21,7 +21,7 @@ def main():
     search_exclusion_list = processor.get_names(data_from_sheet)
 
     collector = LeadCollector(
-        municipality="São Paulo",
+        municipality="Brasilia",
         additional_criteria=None,
         names_in_sheet=search_exclusion_list,
     )
