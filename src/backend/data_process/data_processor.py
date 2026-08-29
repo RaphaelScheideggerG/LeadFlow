@@ -1,6 +1,6 @@
-from src.models.lead import Lead
-from src.data_process.lead_scorer import LeadScorer
-from src.data_process.website_resolver import WebSiteResolver
+from src.backend.models.lead import Lead
+from src.backend.data_process.lead_scorer import LeadScorer
+from src.backend.data_process.website_resolver import WebSiteResolver
 
 
 class DataProcessor:

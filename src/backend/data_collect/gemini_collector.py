@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from google import genai
 import os
 
-from src.models.lead import LeadResponse
+from src.backend.models.lead import LeadResponse
 
 
 # Carregar variáveis de ambiente do arquivo .env

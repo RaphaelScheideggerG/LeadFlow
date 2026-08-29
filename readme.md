@@ -1,37 +1,291 @@
 # LeadFlow
 
-Pipeline de dados para prospecção de empresas e geração de leads, utilizando fontes externas para coleta, processamento e deduplicação dos dados, com armazenamento no Google Sheets.
+Pipeline de dados para prospecção de empresas e geração de leads.
+
+O LeadFlow coleta empresas a partir de fontes externas, processa e deduplica os resultados, realiza enriquecimento e classificação com IA e armazena os leads gerados.
+
+Atualmente, o sistema utiliza a **SerpAPI** como fonte de coleta, **Google Sheets** como camada de persistência e possui uma API desenvolvida com **FastAPI**, consumida por uma interface web em **React**.
+
+> 🚧 **Status: MVP funcional**
+
+---
 
 ## Arquitetura
 
-O fluxo atual da aplicação é:
+A arquitetura atual está dividida em três partes principais:
 
 ```text
-Google Sheets
-      │
-      ├── Leads já existentes
-      │         │
-      │         ▼
-      │   DataProcessor
-      │         │
-      │         ▼
-      ├── Lista de exclusão
-      │
-      ▼
+                    ┌─────────────────┐
+                    │    Frontend     │
+                    │ React + Mantine │
+                    └────────┬────────┘
+                             │
+                             │ HTTP POST
+                             ▼
+                    ┌─────────────────┐
+                    │     FastAPI     │
+                    │   REST API      │
+                    └────────┬────────┘
+                             │
+                             ▼
+                    ┌─────────────────┐
+                    │   LeadFlow      │
+                    │     Core        │
+                    └────────┬────────┘
+                             │
+              ┌──────────────┼──────────────┐
+              ▼              ▼              ▼
+        ┌──────────┐  ┌─────────────┐  ┌──────────────┐
+        │ SerpAPI  │  │ DataProcessor│  │ Google Sheets│
+        └──────────┘  └─────────────┘  └──────────────┘
+                             │
+                             ▼
+                       ┌───────────┐
+                       │ LeadScorer│
+                       │    IA 🤖  │
+                       └───────────┘
+```
+
+### Fluxo de dados
+
+```text
+Frontend
+   │
+   │ município + segmento
+   ▼
+FastAPI
+   │
+   ▼
 LeadCollector
-      │
-      ▼
+   │
+   ▼
 SerpAPI / Google Local Results
-      │
-      ▼
+   │
+   ▼
 Dados brutos
-      │
-      ▼
+   │
+   ▼
 DataProcessor
-      │
-      ├── Normalização
-      ├── Deduplicação
-      └── Construção do modelo Lead
+   │
+   ├── Normalização
+   ├── Deduplicação
+   ├── Construção do modelo Lead
+   ├── Validação/resolução de website
+   └── Classificação com IA
+          │
+          ▼
+      LeadScorer 🤖
+          │
+          ▼
+    Lead enriquecido
+          │
+          ▼
+GoogleSheetsRepository
+          │
+          ▼
+Google Sheets
+```
+
+---
+
+# Backend
+
+O backend é responsável pela execução do pipeline de coleta, processamento e armazenamento dos leads.
+
+## API
+
+A aplicação utiliza **FastAPI** para disponibilizar uma API HTTP que pode ser consumida pelo frontend.
+
+### Endpoint principal
+
+```text
+POST /leads
+```
+
+Recebe:
+
+```json
+{
+  "municipio": "Brasília",
+  "setor": "Tecnologia"
+}
+```
+
+E retorna informações sobre a execução:
+
+```json
+{
+  "status": "ok",
+  "municipio": "Brasília",
+  "setor": "Tecnologia",
+  "brutos": 20,
+  "salvos": 8
+}
+```
+
+Onde:
+
+- `brutos` representa a quantidade de resultados retornados pela busca;
+- `salvos` representa a quantidade de novos leads processados e armazenados.
+
+A API também possui configuração de **CORS** para permitir o acesso pelo frontend durante o desenvolvimento.
+
+---
+
+# Coleta de dados
+
+A classe `LeadCollector` é responsável pela comunicação com a SerpAPI.
+
+Suas responsabilidades incluem:
+
+- Construir a consulta de busca.
+- Considerar município e segmento.
+- Excluir empresas já conhecidas da busca.
+- Enviar a consulta para a SerpAPI.
+- Obter os resultados do Google Local.
+- Retornar os dados brutos para a camada de processamento.
+
+A classe não é responsável pela transformação dos dados no modelo final.
+
+## SerpAPI
+
+Atualmente, a SerpAPI foi escolhida como principal fonte de dados do MVP.
+
+O sistema utiliza resultados locais do Google através do mecanismo:
+
+```text
+google_local
+```
+
+Os resultados retornados podem conter informações como:
+
+- Nome da empresa.
+- Telefone.
+- Categoria/segmento.
+- Website.
+- Avaliação.
+- Quantidade de avaliações.
+- Endereço.
+- Latitude.
+- Longitude.
+- Links relacionados.
+
+### Vantagens
+
+1. Retorno estruturado.
+2. Integração relativamente simples.
+3. Resultados locais.
+4. Permite realizar buscas por município e segmento.
+5. Possui plano gratuito com limite mensal de buscas.
+
+---
+
+# Processamento dos dados
+
+A classe `DataProcessor` atua como camada intermediária entre os dados brutos e o modelo `Lead`.
+
+Suas responsabilidades incluem:
+
+- Extrair nomes de empresas existentes na planilha.
+- Normalizar informações utilizadas para comparação.
+- Identificar empresas duplicadas.
+- Remover empresas que já existem no armazenamento.
+- Remover duplicatas dentro do próprio lote retornado pela API.
+- Construir objetos `Lead`.
+- Resolver e validar websites.
+- Enriquecer leads com análise de IA.
+
+O objetivo é manter as regras de tratamento dos dados separadas da coleta e do armazenamento.
+
+---
+
+# Classificação com IA
+
+Após a construção do objeto `Lead`, o sistema pode submetê-lo ao `LeadScorer`.
+
+O componente de IA produz informações relacionadas à qualidade/relevância do lead, incluindo:
+
+- `ia_score`
+- `ia_justificativa`
+
+Exemplo conceitual:
+
+```text
+Lead
+ │
+ ▼
+LeadScorer 🤖
+ │
+ ▼
+ScoreOutput
+ │
+ ├── ia_score
+ └── justificativa
+```
+
+O score é utilizado como uma camada adicional de filtragem e qualificação dos leads coletados.
+
+---
+
+# Modelo de dados
+
+O modelo `Lead` representa a estrutura padronizada utilizada pelo sistema.
+
+Atualmente, um lead pode conter:
+
+- Nome da empresa.
+- Telefone.
+- Segmento.
+- Município.
+- Estado.
+- Website.
+- Avaliação.
+- Quantidade de avaliações.
+- Endereço.
+- Latitude.
+- Longitude.
+- Score de IA.
+- Justificativa da IA.
+
+Exemplo da estrutura armazenada:
+
+```text
+┌─────────────────────────────┐
+│ Empresa                     │
+│ Telefone                    │
+│ Segmento                    │
+│ Município                   │
+│ Estado                      │
+│ Site                        │
+│ Avaliação                   │
+│ Qtd. avaliações             │
+│ IA Score 🤖                 │
+│ Justificativa 🧠            │
+│ Endereço                    │
+│ Latitude                    │
+│ Longitude                   │
+└─────────────────────────────┘
+```
+
+---
+
+# Armazenamento
+
+A classe `GoogleSheetsRepository` é responsável pela persistência dos leads.
+
+Atualmente, suas responsabilidades incluem:
+
+- Ler os dados existentes.
+- Fornecer os dados necessários para deduplicação.
+- Salvar novos leads.
+- Centralizar a comunicação com o Google Sheets.
+
+A implementação segue a ideia do padrão **Repository/DAO**, isolando a camada de persistência do restante da aplicação.
+
+Atualmente:
+
+```text
+DataProcessor
       │
       ▼
 GoogleSheetsRepository
@@ -40,209 +294,269 @@ GoogleSheetsRepository
 Google Sheets
 ```
 
-## Comparação de métodos de extração de dados
-
-### Gemini Pro com Grounding x Google Places API
-
-| Critério             | Gemini Pro com Grounding                                                                                            | Google Places API                                                         |
-| :------------------- | :------------------------------------------------------------------------------------------------------------------ | :------------------------------------------------------------------------ |
-| **Tipo de busca**    | Permite consultas mais flexíveis e contextuais, como "restaurantes bem avaliados que aceitam pets e possuem Wi-Fi". | Utiliza buscas estruturadas por palavras-chave, categorias e localização. |
-| **Volume de dados**  | Melhor para pequenas listas selecionadas.                                                                           | Melhor para paginação e coleta de grandes volumes de estabelecimentos.    |
-| **Formato de saída** | Pode estruturar a resposta em Markdown, tabelas ou JSON.                                                            | Retorna dados estruturados que precisam ser processados pela aplicação.   |
-| **Velocidade**       | Pode ser mais lento devido ao processamento do modelo.                                                              | Resposta direta da API.                                                   |
-
-### Fontes públicas gratuitas
-
-Algumas fontes públicas podem ser utilizadas para complementar ou substituir serviços pagos.
-
-* **Dados abertos da Receita Federal / CNPJ:** informações cadastrais de empresas, como nome, atividade econômica e município.
-* **Prefeituras e câmaras de comércio:** alguns municípios disponibilizam registros de empresas licenciadas.
-* **IBGE:** dados estatísticos por segmento, município e porte de empresa.
-* **LinkedIn Sales Navigator:** pode auxiliar na prospecção B2B, sujeito aos limites e regras da plataforma.
-
-#### Limitações
-
-Essas fontes normalmente não possuem todos os dados necessários para um lead completo, como telefone, website ou avaliações. Por isso, podem exigir uma etapa adicional de enriquecimento dos dados.
-
-## Web Scraping
-
-### Google Maps
-
-O Google Maps apresenta algumas dificuldades para coleta automatizada:
-
-* Utiliza conteúdo dinâmico com JavaScript.
-* Os dados podem não estar disponíveis diretamente no HTML inicial.
-* Possui mecanismos de proteção contra automação.
-* Pode apresentar CAPTCHAs e bloqueios.
-* A coleta pode estar sujeita aos termos de uso da plataforma.
-
-Ferramentas como Selenium podem automatizar um navegador, mas aumentam a complexidade e o custo computacional da coleta.
-
-### Dados públicos + enriquecimento
-
-Uma alternativa seria combinar diferentes fontes:
-
-```text
-Dados públicos de CNPJ
-        ↓
-Nome + segmento + município
-        ↓
-Enriquecimento dos dados
-        ↓
-Telefone + site + outras informações
-```
-
-Possíveis ferramentas:
-
-* APIs ou bases públicas de CNPJ.
-* Coleta de informações em diretórios públicos.
-* Modelos de linguagem para validar, normalizar ou estruturar dados já obtidos.
-
-A principal limitação é a possibilidade de informações desatualizadas ou incompletas.
-
-## SerpAPI
-
-Atualmente, a SerpAPI foi escolhida como fonte principal para o MVP.
-
-### Vantagens
-
-1. Possui plano gratuito com limite mensal de buscas.
-2. Retorna os resultados em formato estruturado.
-3. Permite obter resultados locais através do mecanismo `google_local`.
-4. Simplifica a integração com resultados de mecanismos de busca.
-
-Os resultados são posteriormente tratados pela aplicação antes de serem armazenados.
+Uma futura migração para PostgreSQL poderá substituir essa camada sem exigir grandes alterações nas demais partes da aplicação.
 
 ---
 
-# Divisão de responsabilidades
+# Frontend
 
-## Coleta de dados
+O frontend foi desenvolvido utilizando:
 
-A classe `LeadCollector` é responsável por:
+- React
+- Vite
+- Mantine
 
-* Construir a consulta de busca.
-* Enviar a consulta para a SerpAPI.
-* Obter os resultados brutos.
-* Retornar os dados para a camada de processamento.
+A interface atualmente permite:
 
-A classe não é responsável por deduplicar ou transformar os dados no modelo final.
+- Informar o município.
+- Informar o segmento/setor.
+- Executar uma busca.
+- Exibir estado de carregamento.
+- Desabilitar os campos durante a execução.
+- Exibir o resultado da busca.
+- Mostrar a quantidade de resultados brutos.
+- Mostrar a quantidade de novos leads adicionados.
 
-## Processamento dos dados
+## Componentização
 
-A classe `DataProcessor` atua como uma camada intermediária entre os dados brutos fornecidos pela API e o modelo utilizado pela aplicação.
+A interface foi dividida em componentes para evitar concentrar toda a lógica no `App.jsx`.
 
-Suas responsabilidades incluem:
+Estrutura atual:
 
-* Extrair nomes de empresas existentes.
-* Normalizar informações utilizadas para comparação.
-* Identificar empresas duplicadas.
-* Remover duplicatas presentes na planilha.
-* Remover duplicatas presentes no próprio lote retornado pela API.
-* Construir objetos `Lead` a partir dos dados brutos.
+```text
+src/frontend/
+│
+├── App.jsx
+├── main.jsx
+│
+└── components/
+    ├── LeadFlowHeader.jsx
+    ├── SearchForm.jsx
+    └── SearchResult.jsx
+```
 
-O objetivo é manter as regras de tratamento de dados separadas tanto da coleta quanto do armazenamento.
+### `LeadFlowHeader`
 
-## Armazenamento
+Responsável pela apresentação do nome da aplicação.
 
-A classe `GoogleSheetsRepository` é responsável pela comunicação com o Google Sheets.
+### `SearchForm`
 
-Atualmente, suas responsabilidades incluem:
+Responsável pelos campos de entrada e ações de busca.
 
-* Ler os dados existentes na planilha.
-* Salvar novos leads.
-* Centralizar a lógica de acesso ao Google Sheets.
+Recebe através de props:
 
-A implementação segue parcialmente a ideia do padrão Repository/DAO, isolando a lógica de persistência do restante da aplicação.
+- Município.
+- Segmento.
+- Estado de loading.
+- Funções para atualização dos campos.
+- Função de execução da busca.
 
-## Modelo de dados
+### `SearchResult`
 
-O modelo `Lead` representa a estrutura padronizada utilizada pelo sistema.
+Responsável por apresentar o resultado da execução do pipeline.
 
-Exemplo de informações armazenadas:
+Exibe:
 
-* Nome da empresa.
-* Telefone.
-* Segmento.
-* Município.
-* Estado.
-* Website.
-* Avaliação.
-* Quantidade de avaliações.
-* Endereço.
-* Latitude.
-* Longitude.
+- Quantidade de empresas encontradas na busca bruta.
+- Quantidade de novos leads adicionados.
 
 ---
 
 # Fluxo de execução
 
-Atualmente, o programa executa aproximadamente o seguinte processo:
-
-1. Conecta-se ao Google Sheets.
-2. Obtém os leads já existentes.
-3. Extrai os nomes existentes.
-4. Utiliza esses nomes para evitar resultados já conhecidos durante a busca.
-5. Coleta novos resultados através da SerpAPI.
-6. Processa, deduplica e enriquece com IA os dados.
-7. Constrói objetos `Lead`.
-8. Salva apenas os novos leads na planilha.
+Atualmente, uma busca segue aproximadamente este fluxo:
 
 ```text
+Usuário
+   │
+   │ Município + Setor
+   ▼
+React
+   │
+   │ POST /leads
+   ▼
+FastAPI
+   │
+   ▼
+LeadCollector
+   │
+   ▼
 SerpAPI
-   ↓ dados brutos
+   │
+   ▼
+20 resultados brutos
+   │
+   ▼
 DataProcessor
-   ↓
-Lead
-   ↓
-LeadScorer 🤖
-   ↓ ScoreOutput
-Lead enriquecido
-   ↓
+   │
+   ├── Remove duplicatas
+   ├── Remove empresas já existentes
+   ├── Normaliza dados
+   ├── Constrói Lead
+   ├── Resolve website
+   └── Classifica com IA
+          │
+          ▼
+      Leads válidos
+          │
+          ▼
 GoogleSheetsRepository
-   ↓
-┌──────────────────────┐
-│ Empresa              │
-│ Telefone             │
-│ Segmento             │
-│ IA Score 🤖          │
-│ Justificativa 🧠     │
-│ Site                 │
-│ Avaliação            │
-│ Qtd. avaliações      │
-│ Endereço             │
-│ Latitude             │
-│ Longitude            │
-└──────────────────────┘
+          │
+          ▼
+Google Sheets
+          │
+          ▼
+FastAPI
+          │
+          ▼
+React
+          │
+          ▼
+Resultado da busca
+```
+
+---
+
+# Comparação de métodos de extração de dados
+
+## Gemini Pro com Grounding x Google Places API
+
+| Critério | Gemini Pro com Grounding | Google Places API |
+| :--- | :--- | :--- |
+| **Tipo de busca** | Permite consultas mais flexíveis e contextuais. | Utiliza buscas estruturadas por palavras-chave, categorias e localização. |
+| **Volume de dados** | Melhor para pequenas listas selecionadas. | Melhor para paginação e coleta de grandes volumes de estabelecimentos. |
+| **Formato de saída** | Pode estruturar a resposta em Markdown, tabelas ou JSON. | Retorna dados estruturados que precisam ser processados pela aplicação. |
+| **Velocidade** | Pode ser mais lento devido ao processamento do modelo. | Resposta direta da API. |
+
+Durante o desenvolvimento, o Gemini com Grounding foi avaliado como fonte de busca, mas a implementação atual utiliza a SerpAPI como principal fonte de coleta.
+
+---
+
+# Fontes públicas gratuitas
+
+Algumas fontes públicas podem ser utilizadas futuramente para complementar ou substituir serviços externos.
+
+- **Dados abertos da Receita Federal / CNPJ:** informações cadastrais de empresas, como nome, atividade econômica e município.
+- **Prefeituras e câmaras de comércio:** alguns municípios disponibilizam registros de empresas licenciadas.
+- **IBGE:** dados estatísticos por segmento, município e porte de empresa.
+- **LinkedIn Sales Navigator:** pode auxiliar na prospecção B2B, sujeito aos limites e regras da plataforma.
+
+### Limitações
+
+Essas fontes normalmente não possuem todos os dados necessários para um lead completo, como telefone, website ou avaliações.
+
+Por isso, podem exigir uma etapa adicional de enriquecimento.
+
+---
+
+# Web Scraping
+
+## Google Maps
+
+O Google Maps apresenta algumas dificuldades para coleta automatizada:
+
+- Utiliza conteúdo dinâmico com JavaScript.
+- Os dados podem não estar disponíveis diretamente no HTML inicial.
+- Possui mecanismos de proteção contra automação.
+- Pode apresentar CAPTCHAs e bloqueios.
+- A coleta pode estar sujeita aos termos de uso da plataforma.
+
+Ferramentas como Selenium podem automatizar um navegador, mas aumentam a complexidade e o custo computacional da coleta.
+
+Por esse motivo, o MVP utiliza a SerpAPI em vez de realizar scraping direto do Google Maps.
+
+---
+
+# Estrutura do projeto
+
+A estrutura atual está organizada aproximadamente da seguinte forma:
+
+```text
+LeadFlow/
+│
+├── src/
+│   │
+│   ├── backend/
+│   │   ├── main.py
+│   │   │
+│   │   ├── models/
+│   │   ├── data_collect/
+│   │   ├── data_process/
+│   │   └── data_storage/
+│   │
+│   └── frontend/
+│       ├── App.jsx
+│       ├── main.jsx
+│       └── components/
+│
+├── tests/
+│
+├── .env
+├── requirements.txt
+└── README.md
 ```
 
 ---
 
 # Tecnologias
 
-* Python
-* SerpAPI
-* Google Sheets API
-* gspread
-* Pydantic
-* pytest
-* python-dotenv
+## Backend
+
+- Python
+- FastAPI
+- Uvicorn
+- Pydantic
+- SerpAPI
+- Google Sheets API
+- gspread
+- python-dotenv
+- Gemini
+- pytest
+
+## Frontend
+
+- React
+- Vite
+- Mantine
 
 ---
 
 # Próximos passos
 
-* [ ] Implementar análise dos leads coletados.
-* [ ] Melhorar a busca por segmento e localização.
-* [ ] Implementar enriquecimento de dados.
-* [ ] Melhorar a cobertura de testes.
-* [ ] Criar uma interface ou API para utilização do sistema.
-* [ ] Avaliar outras fontes públicas de dados.
-* [ ] Implementar paginação para coleta de maiores volumes de leads.
-* [ ] Melhorar a identificação de município e estado a partir dos dados retornados.
+- [ ] Melhorar a interface do frontend.
+- [ ] Implementar página/listagem dos leads.
+- [ ] Implementar funcionalidade de Backfill.
+- [ ] Melhorar tratamento de erros no frontend.
+- [ ] Adicionar feedback visual para falhas na API.
+- [ ] Melhorar busca por segmento e localização.
+- [ ] Melhorar identificação de município e estado.
+- [ ] Implementar paginação para coleta de maiores volumes.
+- [ ] Expandir cobertura de testes.
+- [ ] Avaliar outras fontes públicas de dados.
+- [ ] Avaliar migração do Google Sheets para PostgreSQL.
+- [ ] Criar histórico das buscas realizadas.
+- [ ] Implementar enriquecimento adicional dos leads.
+- [ ] Refinar o sistema de classificação por IA.
 
-## Status
+---
+
+# Status
 
 🚧 **MVP funcional**
 
-O LeadFlow atualmente consegue coletar empresas, evitar duplicatas, processar os resultados e armazenar novos leads automaticamente em uma planilha do Google Sheets.
+O LeadFlow atualmente consegue:
+
+- Receber município e segmento através de uma interface web.
+- Realizar buscas através da SerpAPI.
+- Evitar empresas já existentes.
+- Deduplicar resultados.
+- Normalizar os dados coletados.
+- Construir objetos `Lead`.
+- Resolver e validar websites.
+- Classificar leads utilizando IA.
+- Armazenar novos leads automaticamente no Google Sheets.
+- Expor o pipeline através de uma API FastAPI.
+- Consumir a API através de uma interface React.
+- Exibir feedback da execução para o usuário.
+
+O projeto está em evolução e possui como próximos objetivos o aprimoramento da interface, enriquecimento dos dados, expansão do pipeline e futura migração da persistência para PostgreSQL.

@@ -5,14 +5,15 @@
 .env
 
 # Credenciais
-*.json
+leadflow-key.json
 
 # Python
 __pycache__/
 *.py[cod]
+.pytest_cache/
+
+# Node
+node_modules/
 
 # IDE
 .vscode/
-
-# Key
-leadflow-key.json
