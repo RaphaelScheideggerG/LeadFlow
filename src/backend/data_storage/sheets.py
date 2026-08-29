@@ -1,7 +1,7 @@
 import gspread
 from google.oauth2.service_account import Credentials
 
-from src.models.lead import Lead
+from src.backend.models.lead import Lead
 
 
 class GoogleSheetsRepository:

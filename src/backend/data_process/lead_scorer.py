@@ -1,7 +1,7 @@
-from src.models.lead import Lead
+from src.backend.models.lead import Lead
 from google import genai
 from google.genai import types
-from src.models.score_output import ScoreOutput
+from src.backend.models.score_output import ScoreOutput
 import time
 
 
