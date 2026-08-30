@@ -7,6 +7,7 @@ export default function SearchForm({
   setSetor,
   loading,
   onSearch,
+  onBackfill,
 }) {
   return (
     <>
@@ -49,6 +50,8 @@ export default function SearchForm({
         <Button
           fullWidth
           variant="outline"
+          onClick={onBackfill}
+          loading={loading}
         >
           Backfill
         </Button>

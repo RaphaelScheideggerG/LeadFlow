@@ -9,7 +9,7 @@ import { useState } from 'react';
 
 import LeadFlowHeader from './components/LeadFlowHeader';
 import SearchForm from './components/SearchForm';
-import SearchResult from './components/SearchResult';
+import FeedbackAlert from './components/FeedbackAlert';
 
 export default function App() {
   const [municipio, setMunicipio] = useState("");
@@ -40,7 +40,7 @@ export default function App() {
       }
 
       setResultado({
-        tipo: "sucesso",
+        tipo: "busca",
         ...data,
       });
 
@@ -65,6 +65,49 @@ export default function App() {
     }
   }
 
+  async function runBackfill() {
+    setLoading(true);
+    setResultado(null);
+
+    try {
+      const response = await fetch("http://localhost:8000/backfill", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Erro ao realizar o backfill.");
+      }
+
+      setResultado({
+        tipo: "backfill",
+        ...data,
+      });
+
+      setTimeout(() => {
+        setResultado(null);
+      }, 10000);
+
+    } catch (error) {
+      console.error("Erro na requisição:", error);
+
+      setResultado({
+        tipo: "erro",
+        mensagem: error.message,
+      });
+
+      setTimeout(() => {
+        setResultado(null);
+      }, 10000);
+
+    } finally {
+      setLoading(false);
+    }
+  }
   return (
     <Center h="100vh">
       <Card
@@ -87,9 +130,10 @@ export default function App() {
               setSetor={setSetor}
               loading={loading}
               onSearch={run}
+              onBackfill={runBackfill}
             />
 
-            <SearchResult resultado={resultado} />
+            <FeedbackAlert resultado={resultado} />
 
           </Stack>
         </Container>
