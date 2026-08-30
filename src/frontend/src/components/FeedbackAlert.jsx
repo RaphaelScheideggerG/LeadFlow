@@ -42,7 +42,7 @@ export default function FeedbackAlert({ resultado }) {
           </Text>
 
           <Text size="sm" ta="center">
-            🔄 Leads atualizados: <b>{resultado.atualizados}</b>
+            🔄 Leads processados: <b>{resultado.atualizados}</b>
           </Text>
         </Stack>
       </Alert>

@@ -21,6 +21,7 @@ class Lead(BaseModel):
     latitude: float | None = None
     longitude: float | None = None
 
+    linha: int | None = None
 
 class LeadResponse(BaseModel):
     leads: list[Lead]
