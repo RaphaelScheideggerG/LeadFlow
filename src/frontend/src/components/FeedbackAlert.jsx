@@ -1,6 +1,6 @@
 import { Alert, Stack, Text } from '@mantine/core';
 
-export default function SearchResult({ resultado }) {
+export default function FeedbackAlert({ resultado }) {
   if (!resultado) {
     return null;
   }
@@ -29,12 +29,31 @@ export default function SearchResult({ resultado }) {
     );
   }
 
+  if (resultado.tipo === "backfill") {
+    return (
+      <Alert
+        variant="light"
+        color="cyan"
+        w="100%"
+      >
+        <Stack gap="xs" align="center">
+          <Text fw={500} ta="center">
+            Backfill Finalizado com Sucesso!
+          </Text>
+
+          <Text size="sm" ta="center">
+            🔄 Leads atualizados: <b>{resultado.atualizados}</b>
+          </Text>
+        </Stack>
+      </Alert>
+    );
+  }
+
   return (
     <Alert
       variant="light"
       color="cyan"
       w="100%"
-      title="Busca Finalizada com Sucesso!"
     >
       <Stack gap={4}>
         <Text size="sm">
