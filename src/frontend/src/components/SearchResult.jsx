@@ -5,10 +5,35 @@ export default function SearchResult({ resultado }) {
     return null;
   }
 
+  if (resultado.tipo === "erro") {
+    return (
+      <Alert
+        variant="light"
+        color="red"
+        w="100%"
+      >
+        <Stack gap="xs" align="center">
+          <Text fw={500} ta="center">
+            Erro ao Buscar!
+          </Text>
+
+          <Text size="sm" ta="center">
+            ❌ Não foi possível concluir a busca.
+          </Text>
+
+          <Text size="sm" ta="center">
+            ⚠️ {resultado.mensagem}
+          </Text>
+        </Stack>
+      </Alert>
+    );
+  }
+
   return (
     <Alert
       variant="light"
       color="cyan"
+      w="100%"
       title="Busca Finalizada com Sucesso!"
     >
       <Stack gap={4}>

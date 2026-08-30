@@ -35,14 +35,31 @@ export default function App() {
 
       const data = await response.json();
 
-      setResultado(data);
+      if (!response.ok) {
+        throw new Error(data.detail || "Erro ao realizar a busca.");
+      }
+
+      setResultado({
+        tipo: "sucesso",
+        ...data,
+      });
 
       setTimeout(() => {
         setResultado(null);
-      }, 5000);
+      }, 10000);
 
     } catch (error) {
       console.error("Erro na requisição:", error);
+
+      setResultado({
+        tipo: "erro",
+        mensagem: error.message,
+      });
+
+      setTimeout(() => {
+        setResultado(null);
+      }, 10000);
+
     } finally {
       setLoading(false);
     }
