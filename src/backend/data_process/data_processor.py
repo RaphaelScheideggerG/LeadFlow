@@ -7,7 +7,7 @@ class DataProcessor:
     def __init__(self):
         self.duplicated_names: set[str] = set()
         self.lead_scorer = LeadScorer()
-        self.resolve_website = WebSiteResolver()
+        self.website_resolver = WebSiteResolver()
 
     def get_names(self, leads: list[Lead]) -> list[str]:
         return [
@@ -21,8 +21,25 @@ class DataProcessor:
 
         resultados_deduplicados = self._deduplicate(results)
 
+        # Alterar aqui para retornar progresso e.g 5/20 -> 6/20
         return [self._build_lead(data) for data in resultados_deduplicados]
 
+    def backfill(self, leads: list[Lead]) -> list[Lead]:
+        for lead in leads:
+            if lead.ia_score is None or lead.ia_justificativa is None:
+                score = self.lead_scorer.evaluate(lead)
+
+                if score:
+                    lead.ia_score = score.ia_score
+                    lead.ia_justificativa = score.justificativa
+
+            lead.site = self.website_resolver.resolve_website(lead.site)
+
+        return leads
+    
+    """
+    Funções auxiliares
+    """
     def _map_duplicates(self, results: list[dict], nomes_existentes: list[str]) -> None:
         self.duplicated_names.clear()  # Limpa o estado para evitar vazamento entre execuções
         existentes_set = {nome.strip().lower() for nome in nomes_existentes}
@@ -50,7 +67,6 @@ class DataProcessor:
         return resultados_unicos
 
     def _build_lead(self, data: dict) -> Lead:
-        print(data)
         gps = data.get("gps_coordinates") or {}
         links = data.get("links") or {}
 
@@ -61,7 +77,7 @@ class DataProcessor:
 
             segmento=data.get("type", ""),
 
-            site = self.resolve_website.resolve_website(links.get("website")),
+            site = self.website_resolver.resolve_website(links.get("website")),
 
             ia_score=None,
             ia_justificativa=None,

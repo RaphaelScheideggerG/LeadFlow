@@ -18,88 +18,121 @@ class GoogleSheetsRepository:
         )
 
         client = gspread.authorize(credentials)
-
         spreadsheet = client.open(spreadsheet_name)
 
         self.worksheet = spreadsheet.worksheet(worksheet_name)
 
     def list_all(self) -> list[Lead]:
-        all_rows = self.worksheet.get_all_values()[1:]
+        rows = self.worksheet.get_all_values()[1:]
 
         leads = []
 
-        for row in all_rows:
+        for row_index, row in enumerate(rows, start=2):
             if not row or not row[0].strip():
                 continue
 
-            def get_col(index: int):
-                if index < len(row) and row[index] != "":
-                    return row[index]
-                return None
-
-            avaliacao = self._parse_float(get_col(6))
-
-            raw_qtd = get_col(7)
-            quantidade_avaliacoes = int(raw_qtd) if raw_qtd else None
-
-            latitude = self._parse_float(get_col(9))
-            longitude = self._parse_float(get_col(10))
-
-            lead = Lead(
-                nome_empresa=row[0],
-
-                telefone=get_col(1),
-                
-                segmento=get_col(2),
-
-                ia_score=self._parse_float(get_col(3)),
-                ia_justificativa=get_col(4),
-
-                site=get_col(5),
-
-                avaliacao=avaliacao,
-                quantidade_avaliacoes=quantidade_avaliacoes,
-
-                endereco=get_col(8),
-
-                latitude=latitude,
-                longitude=longitude,
+            leads.append(
+                Lead(
+                    nome_empresa=row[0],
+                    telefone=self._get_col(row, 1),
+                    segmento=self._get_col(row, 2),
+                    ia_score=self._parse_float(self._get_col(row, 3)),
+                    ia_justificativa=self._get_col(row, 4),
+                    site=self._get_col(row, 5),
+                    avaliacao=self._parse_float(self._get_col(row, 6)),
+                    quantidade_avaliacoes=self._parse_int(self._get_col(row, 7)),
+                    endereco=self._get_col(row, 8),
+                    latitude=self._parse_float(self._get_col(row, 9)),
+                    longitude=self._parse_float(self._get_col(row, 10)),
+                    linha=row_index,
+                )
             )
-
-            leads.append(lead)
 
         return leads
 
     def save_leads(self, leads: list[Lead]) -> None:
-        # Garante a ordem exata das 11 colunas do contrato
+        rows = [self._lead_to_row(lead) for lead in leads]
+
+        if rows:
+            self.worksheet.append_rows(rows)
+
+    def update_lead(self, lead: Lead) -> None:
+        if lead.linha is None:
+            return
+
+        # Atualiza linha por linha chamando a api para **cada linha**
+        self.worksheet.update(
+            f"A{lead.linha}:K{lead.linha}",
+            [self._lead_to_row(lead)],
+        )
+
+    def update_leads(self, leads: list[Lead]) -> None:
         rows = [
             [
                 lead.nome_empresa,
-
                 lead.telefone or "",
                 lead.segmento or "",
-
                 lead.ia_score if lead.ia_score is not None else "",
                 lead.ia_justificativa or "",
-
                 lead.site or "",
-
                 lead.avaliacao if lead.avaliacao is not None else "",
-                lead.quantidade_avaliacoes if lead.quantidade_avaliacoes is not None else "",
-
+                lead.quantidade_avaliacoes
+                    if lead.quantidade_avaliacoes is not None else "",
                 lead.endereco or "",
-
                 lead.latitude if lead.latitude is not None else "",
                 lead.longitude if lead.longitude is not None else "",
             ]
             for lead in leads
         ]
 
-        if rows:
-            self.worksheet.append_rows(rows)
+        if not rows:
+            return
 
-    def _parse_float(self, value):
+        self.worksheet.update(
+            f"A2:K{len(rows) + 1}",
+            rows,
+        )
+
+    """
+    Métodos auxiliares
+    """
+    @staticmethod
+    def _lead_to_row(lead: Lead) -> list:
+        return [
+            lead.nome_empresa,
+            lead.telefone or "",
+            lead.segmento or "",
+            lead.ia_score if lead.ia_score is not None else "",
+            lead.ia_justificativa or "",
+            lead.site or "",
+            lead.avaliacao if lead.avaliacao is not None else "",
+            (
+                lead.quantidade_avaliacoes
+                if lead.quantidade_avaliacoes is not None
+                else ""
+            ),
+            lead.endereco or "",
+            lead.latitude if lead.latitude is not None else "",
+            lead.longitude if lead.longitude is not None else "",
+        ]
+
+    @staticmethod
+    def _get_col(row: list, index: int):
+        if index < len(row) and row[index] != "":
+            return row[index]
+
+        return None
+
+    @staticmethod
+    def _parse_float(value):
         if not value:
             return None
 
         return float(str(value).replace(",", "."))
+
+    @staticmethod
+    def _parse_int(value):
+        if not value:
+            return None
+
+        return int(value)

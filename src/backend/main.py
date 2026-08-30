@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 def executar_busca(municipio: str, segmento: str):
     print("=" * 60)
-    print("🎯 COLETOR DE LEADS COM SERPAPI")
+    print("🎯 COLETANDO LEADS")
     print("=" * 60)
 
     sheet = GoogleSheetsRepository(
@@ -49,6 +49,28 @@ def executar_busca(municipio: str, segmento: str):
 
     return total_bruto, total_salvo
 
+def executar_backfill():
+    print("=" * 60)
+    print("🎯 REALIZANDO BACKFILL")
+    print("=" * 60)
+
+    sheet = GoogleSheetsRepository(
+        spreadsheet_name="LeadFlow",
+        worksheet_name="Página1",
+    )
+
+    data_from_sheet = sheet.list_all()
+    print(f"🔄 Atualizando {len(data_from_sheet)} leads...")
+
+    processor = DataProcessor()
+
+    backfilled_data = processor.backfill(data_from_sheet)
+
+    print(f"💾 Salvando {len(backfilled_data)} dados atualizados...")
+    sheet.update_leads(backfilled_data)
+
+    return len(data_from_sheet)
+
 
 app = FastAPI()
 
@@ -78,4 +100,15 @@ def buscar_leads(search: LeadSearch):
         "setor": search.setor,
         "brutos": total_bruto,
         "salvos": total_salvo,
+    }
+
+@app.post("/backfill")
+def backfill():
+    print("🔄 Recebida solicitação de backfill.")
+
+    quantidade = executar_backfill()
+
+    return {
+        "status": "ok",
+        "atualizados": quantidade,
     }
