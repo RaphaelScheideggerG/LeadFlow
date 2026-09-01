@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from google import genai
 import os
 
-from src.backend.models.lead import LeadResponse
+from backend.models.company import CompanyResponse
 
 
 # Carregar variáveis de ambiente do arquivo .env
@@ -15,8 +15,8 @@ if not GEMINI_API_KEY:
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 
-# Classe para coletar leads usando Gemini Pro com grounding
-class LeadCollector:
+# Classe para coletar empresas usando Gemini Pro com grounding
+class CompanyCollector:
     def __init__(self, segment: str, municipality: str, additional_criteria: str = ""):
         # Criterios de busca
         self.segment = segment
@@ -24,18 +24,18 @@ class LeadCollector:
         self.additional_criteria = additional_criteria
         self.quantity: int = 1
 
-    def collect_leads(self) -> List[Dict[str, Any]]:
+    def collect_companies(self) -> List[Dict[str, Any]]:
         """
-        Coleta leads usando Gemini Pro com grounding
+        Coleta empresas usando Gemini Pro com grounding
         
         Args:
             segment: Segmento da indústria (ex: "Tecnologia", "Saúde", "Educação")
             municipality: Município (ex: "São Paulo", "Rio de Janeiro")
-            quantity: Quantidade de leads desejadas
+            quantity: Quantidade de empresas desejadas
             additional_criteria: Critérios adicionais (ex: "com mais de 50 funcionários")
         
         Returns:
-            Lista de dicionários com dados dos leads
+            Lista de dicionários com dados das empresas
         """
         
         prompt = f"""
@@ -71,7 +71,7 @@ class LeadCollector:
             verificáveis.
             """
         
-        print(f"🔍 Buscando {self.quantity} leads em {self.segment} - {self.municipality}...")
+        print(f"🔍 Buscando {self.quantity} empresas em {self.segment} - {self.municipality}...")
 
         try:
             response = client.interactions.create(
@@ -80,7 +80,7 @@ class LeadCollector:
                 response_format={
                     "type": "text",
                     "mime_type": "application/json",
-                    "schema": LeadResponse.model_json_schema(),
+                    "schema": CompanyResponse.model_json_schema(),
                 },
                 tools=[
                     {"type": "google_search"}
@@ -88,17 +88,17 @@ class LeadCollector:
             )
         
             # Tentar parsear a resposta JSON usando Pydantic
-            leads = LeadResponse.model_validate_json(response.output_text)
-            print(leads)
+            companies = CompanyResponse.model_validate_json(response.output_text)
+            print(companies)
             """
             try:
                 data = response
-                if not data or not data.leads:
-                    print("⚠️ Nenhum lead retornado")
+                if not data or not data.companies:
+                    print("⚠️ Nenhuma empresa retornado")
                     return []
                 print(data)
                 print(data.output_text)
-                return data.leads  # Retorna só a lista, não o objeto todo
+                return data.companies  # Retorna só a lista, não o objeto todo
             except Exception as e:
                 print(f"❌ Erro ao parsear: {e}")
                 return []

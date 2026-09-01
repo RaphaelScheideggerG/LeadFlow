@@ -1,42 +1,68 @@
-from src.backend.models.lead import Lead
-from src.backend.data_process.lead_scorer import LeadScorer
+from src.backend.models.company import Company
+from src.backend.data_process.company_scorer import CompanyScorer
 from src.backend.data_process.website_resolver import WebSiteResolver
+from src.backend.models.lead import Lead
 
 
 class DataProcessor:
     def __init__(self):
         self.duplicated_names: set[str] = set()
-        self.lead_scorer = LeadScorer()
+        self.company_scorer = CompanyScorer()
         self.website_resolver = WebSiteResolver()
 
-    def get_names(self, leads: list[Lead]) -> list[str]:
+    def get_names(self, companies: list[Company]) -> list[str]:
         return [
-            lead.nome_empresa.strip()
-            for lead in leads
-            if lead.nome_empresa
+            company.nome_empresa.strip()
+            for company in companies
+            if company.nome_empresa
         ]
 
-    def process(self, results: list[dict], nomes_existentes: list[str] | None = None) -> list[Lead]:
+    def process(self, results: list[dict], nomes_existentes: list[str] | None = None) -> list[Company]:
         self._map_duplicates(results, nomes_existentes or [])
 
         resultados_deduplicados = self._deduplicate(results)
+        companies = [self._build_company(item) for item in resultados_deduplicados]
 
         # Alterar aqui para retornar progresso e.g 5/20 -> 6/20
-        return [self._build_lead(data) for data in resultados_deduplicados]
+        return companies
 
-    def backfill(self, leads: list[Lead]) -> list[Lead]:
-        for lead in leads:
-            if lead.ia_score is None or lead.ia_justificativa is None:
-                score = self.lead_scorer.evaluate(lead)
+    def backfill(self, companies: list[Company]) -> list[Company]:
+        for company in companies:
+            if company.ia_score is None or company.ia_justificativa is None:
+                score = self.company_scorer.evaluate(company)
 
                 if score:
-                    lead.ia_score = score.ia_score
-                    lead.ia_justificativa = score.justificativa
+                    company.ia_score = score.ia_score
+                    company.ia_justificativa = score.justificativa
 
-            lead.site = self.website_resolver.resolve_website(lead.site)
+            if company.site:
+                company.site = self.website_resolver.resolve_website(company.site)
+
+        return companies
+
+    def get_leads(
+        self,
+        data: list[Company]
+    ) -> list[Lead]:
+
+        leads = []
+
+        for company in data:
+            if (
+                company.id is not None
+                and company.ia_score is not None
+                and company.ia_score >= 7.0
+            ):
+                leads.append(
+                    Lead(
+                        company_id=company.id,
+                        ia_score=company.ia_score,
+                        ia_justificativa=company.ia_justificativa
+                    )
+                )
 
         return leads
-    
+
     """
     Funções auxiliares
     """
@@ -66,11 +92,11 @@ class DataProcessor:
 
         return resultados_unicos
 
-    def _build_lead(self, data: dict) -> Lead:
+    def _build_company(self, data: dict) -> Company:
         gps = data.get("gps_coordinates") or {}
         links = data.get("links") or {}
 
-        lead = Lead(
+        company = Company(
             nome_empresa=data.get("title", "").strip(),
 
             telefone=data.get("phone"),
@@ -90,10 +116,10 @@ class DataProcessor:
             longitude=gps.get("longitude"),
         )
 
-        score = self.lead_scorer.evaluate(lead)
+        score = self.company_scorer.evaluate(company)
         
         if score:
-            lead.ia_score = score.ia_score
-            lead.ia_justificativa = score.justificativa
+            company.ia_score = score.ia_score
+            company.ia_justificativa = score.justificativa
 
-        return lead
+        return company

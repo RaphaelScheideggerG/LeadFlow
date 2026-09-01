@@ -22,7 +22,7 @@ export default function App() {
     setResultado(null);
 
     try {
-      const response = await fetch("http://localhost:8000/leads", {
+      const response = await fetch("http://localhost:8000/companies", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -1,34 +1,29 @@
-import sqlite3
-import os
+from pathlib import Path
 
-# Salva o arquivo leadflow.db na mesma pasta data_storage
-DB_PATH = os.path.join(os.path.dirname(__file__), "leadflow.db")
+import psycopg2
+
 
 def obter_conexao():
-    return sqlite3.connect(DB_PATH)
+    return psycopg2.connect(
+        host="localhost",
+        port=5432,
+        dbname="leadflow_db",
+        user="postgres",
+        password="postgres"
+    )
+
 
 def inicializar_banco():
+    schema_path = Path(__file__).parent / "schema.sql"
+
+    schema = schema_path.read_text(encoding="utf-8")
+
     conexao = obter_conexao()
     cursor = conexao.cursor()
-    
-    # Criação da tabela espelhando os exatos atributos do seu Lead
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS leads (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nome_empresa TEXT NOT NULL,
-        telefone TEXT,
-        segmento TEXT,
-        ia_score REAL,
-        ia_justificativa TEXT,
-        site TEXT,
-        avaliacao REAL,
-        quantidade_avaliacoes INTEGER,
-        endereco TEXT,
-        latitude REAL,
-        longitude REAL,
-        linha INTEGER
-    )
-    """)
-    
+
+    cursor.execute(schema)
+
     conexao.commit()
+
+    cursor.close()
     conexao.close()
