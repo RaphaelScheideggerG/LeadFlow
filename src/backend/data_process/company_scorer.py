@@ -1,11 +1,11 @@
-from src.backend.models.lead import Lead
+from src.backend.models.company import Company
 from google import genai
 from google.genai import types
 from src.backend.models.score_output import ScoreOutput
 import time
 
 
-class LeadScorer:
+class CompanyScorer:
     def __init__(self):
         self.client = genai.Client()
         self.model_name = "gemini-3.5-flash-lite"
@@ -36,7 +36,7 @@ class LeadScorer:
         )
 
 
-    def evaluate(self, lead: Lead) -> ScoreOutput | None:
+    def evaluate(self, lead: Company) -> ScoreOutput | None:
         for attempt in range(3):
             try:
                 response = self.client.models.generate_content(

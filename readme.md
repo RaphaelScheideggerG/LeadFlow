@@ -2,9 +2,7 @@
 
 **Pipeline inteligente para prospecção de empresas e geração de leads.**
 
-O **LeadFlow** automatiza uma parte do processo de prospecção: coleta empresas a partir de buscas locais, normaliza e deduplica os resultados, enriquece os dados, classifica leads com IA e persiste as informações em uma base centralizada.
-
-Atualmente, o projeto combina **SerpAPI + Python + FastAPI + React + Mantine + Google Sheets + Gemini**.
+O **LeadFlow** automatiza parte do processo de prospecção comercial: coleta empresas a partir de buscas locais, normaliza e deduplica os resultados, enriquece os dados, classifica empresas com IA, persiste as informações em PostgreSQL e sincroniza os dados processados com o Google Sheets.
 
 > 🚧 **Status: MVP funcional**
 
@@ -44,55 +42,94 @@ Município + Segmento
 
 A partir deles, o sistema:
 
-1. Consulta a SerpAPI utilizando resultados locais do Google.
+1. Consulta a SerpAPI utilizando resultados locais.
 2. Compara os resultados com empresas já armazenadas.
-3. Remove duplicatas do histórico e do próprio lote.
-4. Normaliza os dados encontrados.
+3. Remove empresas já conhecidas e duplicatas do próprio lote.
+4. Normaliza os dados coletados.
 5. Resolve e valida websites.
-6. Constrói objetos `Lead`.
-7. Classifica os leads com IA.
-8. Salva apenas os novos leads no Google Sheets.
+6. Persiste as novas empresas no PostgreSQL.
+7. Classifica as empresas com IA.
+8. Gera registros de `Lead` a partir das empresas qualificadas.
+9. Persiste os leads no PostgreSQL.
+10. Sincroniza os dados atuais do banco com o Google Sheets.
 
-O sistema também possui um **Backfill**, responsável por reprocessar leads já existentes e preencher dados que ficaram incompletos, como score/justificativa da IA e websites.
+O sistema também possui um **Backfill**, responsável por reprocessar registros existentes e preencher ou atualizar dados que ficaram incompletos, como score, justificativa da IA e websites.
+
+### PostgreSQL como fonte central
+
+O PostgreSQL é a fonte central de persistência da aplicação. O Google Sheets não é mais utilizado como banco principal: ele funciona como uma camada de visualização e sincronização executada ao final das operações.
+
+Isso permite manter a lógica de negócio independente da planilha e criar uma base mais adequada para consultas, relacionamentos e evolução futura da aplicação.
 
 ---
 
 # Arquitetura
 
-A aplicação está organizada em três camadas principais:
+A aplicação está organizada em camadas para separar interface, API, regras de negócio, persistência e integrações externas.
 
 ```text
-                    ┌──────────────────────┐
-                    │      Frontend        │
-                    │   React + Mantine    │
-                    └──────────┬───────────┘
-                               │
-                               │ HTTP
-                               ▼
-                    ┌──────────────────────┐
-                    │       FastAPI        │
-                    │       REST API       │
-                    └──────────┬───────────┘
-                               │
-                               ▼
-                    ┌──────────────────────┐
-                    │    LeadFlow Core     │
-                    └──────────┬───────────┘
-                               │
-              ┌────────────────┼────────────────┐
-              ▼                ▼                ▼
-        ┌──────────┐    ┌──────────────┐   ┌──────────────┐
-        │  SerpAPI │    │DataProcessor │   │ Google Sheets│
-        └──────────┘    └───────┬──────┘   └──────────────┘
-                                │
-                                ▼
-                          ┌───────────┐
-                          │ LeadScorer│
-                          │    IA 🤖  │
-                          └───────────┘
+                         ┌──────────────────────┐
+                         │      Frontend        │
+                         │   React + Mantine    │
+                         └──────────┬───────────┘
+                                    │
+                                  HTTP
+                                    ▼
+                         ┌──────────────────────┐
+                         │       FastAPI        │
+                         │       REST API       │
+                         └──────────┬───────────┘
+                                    │
+                                    ▼
+                         ┌──────────────────────┐
+                         │    LeadFlow Core     │
+                         │      Services        │
+                         └──────────┬───────────┘
+                                    │
+              ┌─────────────────────┼─────────────────────┐
+              │                     │                     │
+              ▼                     ▼                     ▼
+       ┌────────────┐       ┌──────────────┐       ┌──────────────┐
+       │  SerpAPI   │       │ DataProcessor│       │ Repositórios │
+       │Google Local│       └──────┬───────┘       └──────┬───────┘
+       └────────────┘              │                      │
+                                   │                      │
+                    ┌──────────────┼──────────────┐       │
+                    │              │              │       │
+                    ▼              ▼              ▼       ▼
+            ┌───────────────┐ ┌──────────────┐ ┌──────────────┐
+            |WebsiteResolver│ │CompanyScorer │ │ Deduplicação │
+            |   🌐 Website  │ │     IA 🤖    │ │  & Backfill  │
+            └───────────────┘ └──────────────┘ └──────────────┘
+                                                    │
+                                                    ▼
+                                             ┌──────────────┐
+                                             │  PostgreSQL  │
+                                             │   Database   │
+                                             └──────┬───────┘
+                                                    │
+                                                    ▼
+                                             ┌──────────────┐
+                                             │ Google Sheets│
+                                             │  Sync final  │
+                                             └──────────────┘
 ```
 
-### Fluxo de busca
+### Princípios da arquitetura
+
+- **FastAPI** expõe a aplicação como API HTTP.
+- **Services** orquestram os casos de uso.
+- **DataProcessor** concentra transformação, deduplicação, enriquecimento e backfill.
+- **Repositories** isolam o acesso aos mecanismos de persistência.
+- **PostgreSQL** mantém os dados relacionais da aplicação.
+- **Google Sheets** funciona como uma camada de sincronização/visualização.
+- **SerpAPI** fornece os dados externos utilizados na coleta.
+- **CompanyScorer** adiciona a classificação baseada em IA.
+- **WebsiteResolver** resolve e normaliza o endereço do site das empresas, enriquecendo os dados coletados e também sendo utilizado durante o backfill.
+
+---
+
+## Fluxo de busca
 
 ```text
 Usuário
@@ -101,12 +138,15 @@ Usuário
    ▼
 React
    │
-   │ POST /leads
+   │ POST /companies
    ▼
 FastAPI
    │
    ▼
-LeadCollector
+LeadFlow Service
+   │
+   ▼
+CompanyCollector
    │
    ▼
 SerpAPI / Google Local
@@ -117,58 +157,101 @@ Dados brutos
    ▼
 DataProcessor
    │
-   ├── Normalização
    ├── Deduplicação
-   ├── Construção do Lead
+   ├── Normalização
    ├── Resolução de website
    └── Classificação com IA
-          │
-          ▼
-      Lead enriquecido
-          │
-          ▼
-GoogleSheetsRepository
-          │
-          ▼
-Google Sheets
+   │
+   ▼
+Empresas processadas
+   │
+   ▼
+CompanyRepository
+   │
+   ▼
+PostgreSQL
+   │
+   ▼
+Geração de Leads
+   │
+   ▼
+LeadRepository
+   │
+   ▼
+PostgreSQL
+   │
+   ▼
+Google Sheets Sync
+   │
+   ├── Empresas
+   └── Leads
 ```
 
-### Fluxo de Backfill
+A persistência ocorre no PostgreSQL durante a operação. Ao final, os dados atuais do banco são sincronizados com as abas correspondentes do Google Sheets.
+
+---
+
+## Fluxo de Backfill
+
+O Backfill trabalha sobre os dados persistidos no PostgreSQL, e não sobre a planilha.
 
 ```text
-Google Sheets
-      │
-      ▼
-list_all()
-      │
-      ▼
-DataProcessor.backfill()
-      │
-      ├── Reavalia leads sem score/justificativa
-      └── Resolve websites
-      │
-      ▼
-GoogleSheetsRepository.update_leads()
-      │
-      ▼
-Google Sheets atualizado
+Usuário
+   │
+   │ clique em Backfill
+   ▼
+React
+   │
+   │ POST /backfill
+   ▼
+FastAPI
+   │
+   ▼
+LeadFlow Service
+   │
+   ▼
+PostgreSQL
+   │
+   ├── Companies
+   └── Leads
+   │
+   ▼
+DataProcessor
+   │
+   ├── Reprocessamento de dados de empresas
+   ├── Reavaliação com IA
+   └── Resolução de websites
+   │
+   ▼
+CompanyRepository / LeadRepository
+   │
+   ▼
+PostgreSQL
+   │
+   ▼
+Google Sheets Sync
+   │
+   ├── Empresas atualizadas
+   └── Leads atualizados
 ```
+
+O Backfill permite evoluir o conjunto de dados sem precisar executar novamente toda a etapa de coleta externa.
 
 ---
 
 # Backend
 
-O backend concentra a lógica de coleta, processamento e persistência.
+O backend concentra a lógica de coleta, processamento, persistência e exposição da API.
 
 ## API
 
 A API é construída com **FastAPI** e atualmente disponibiliza dois endpoints principais.
 
-### `POST /leads`
+### `POST /companies`
 
-Realiza uma nova busca.
+Executa uma nova busca de empresas.
 
-Request:
+#### Request
 
 ```json
 {
@@ -177,7 +260,7 @@ Request:
 }
 ```
 
-Response:
+#### Response
 
 ```json
 {
@@ -189,26 +272,49 @@ Response:
 }
 ```
 
-`brutos` representa o total de resultados retornados pela busca, enquanto `salvos` representa a quantidade de novos leads processados e adicionados à planilha.
+`brutos` representa o total de resultados retornados pela coleta.
+
+`salvos` representa a quantidade de novas empresas persistidas após o processamento.
 
 ### `POST /backfill`
 
-Reprocessa os leads já armazenados.
+Reprocessa os dados existentes.
 
-Response:
+#### Response
 
 ```json
 {
   "status": "ok",
-  "atualizados": 116
+  "empresas_atualizadas": 116,
+  "leads_atualizados": 116
 }
 ```
+
+> Os valores acima são exemplos de resposta.
+
+## Tratamento de erros
+
+Erros encontrados durante a execução do pipeline são propagados pelo service até a camada da API.
+
+O FastAPI converte as exceções em respostas HTTP estruturadas, permitindo que o frontend apresente a mensagem real do erro ao usuário.
+
+Exemplo de resposta:
+
+```json
+{
+  "detail": "Erro ao buscar empresas: ..."
+}
+```
+
+No frontend, respostas HTTP fora da faixa de sucesso são interpretadas e exibidas no componente de feedback.
+
+Esse fluxo evita esconder erros operacionais e facilita diagnóstico durante o uso da aplicação.
 
 ---
 
 # Coleta de dados
 
-A classe `LeadCollector` é responsável pela comunicação com a SerpAPI.
+A classe `CompanyCollector` é responsável pela comunicação com a SerpAPI.
 
 Suas principais responsabilidades são:
 
@@ -219,7 +325,7 @@ Suas principais responsabilidades são:
 - Obter resultados locais.
 - Retornar os dados brutos.
 
-A coleta é mantida separada do processamento para que os dados retornados pela fonte externa não sejam diretamente acoplados ao modelo final da aplicação.
+A coleta permanece separada do processamento para evitar o acoplamento direto entre o formato retornado pela fonte externa e os modelos internos da aplicação.
 
 ## SerpAPI
 
@@ -250,7 +356,7 @@ Os resultados podem fornecer:
 - Integração simples.
 - Resultados locais.
 - Busca por município e segmento.
-- Plano gratuito com limite mensal.
+- Permite evitar scraping direto da interface do Google Maps.
 
 ---
 
@@ -258,16 +364,27 @@ Os resultados podem fornecer:
 
 A classe `DataProcessor` atua como camada intermediária entre a coleta e os modelos utilizados pela aplicação.
 
-Suas responsabilidades incluem:
+Uma distinção importante do modelo atual é a separação entre **Company** e **Lead**.
+
+### `Company`
+
+Representa a empresa coletada e seus dados cadastrais/enriquecidos.
+
+### `Lead`
+
+Representa uma oportunidade derivada de uma empresa qualificada. O `Lead` referencia a empresa por `company_id` e armazena informações específicas da qualificação, como score e justificativa da IA.
+
+O `DataProcessor` é responsável por:
 
 - Extrair nomes existentes.
 - Normalizar dados utilizados na comparação.
 - Identificar duplicatas.
 - Remover empresas já armazenadas.
 - Remover duplicatas dentro do próprio lote.
-- Construir objetos `Lead`.
+- Construir objetos `Company`.
 - Resolver websites.
-- Classificar leads com IA.
+- Classificar empresas com IA.
+- Gerar objetos `Lead` a partir das empresas qualificadas.
 - Realizar o processo de **Backfill**.
 
 A lógica de processamento permanece independente da camada de armazenamento.
@@ -276,7 +393,7 @@ A lógica de processamento permanece independente da camada de armazenamento.
 
 # Classificação com IA
 
-O componente `LeadScorer` avalia os leads e produz:
+O componente `CompanyScorer` avalia empresas e produz:
 
 - `ia_score`
 - `ia_justificativa`
@@ -284,74 +401,120 @@ O componente `LeadScorer` avalia os leads e produz:
 Fluxo:
 
 ```text
-Lead
- │
- ▼
-LeadScorer 🤖
- │
- ▼
+Company
+   │
+   ▼
+CompanyScorer 🤖
+   │
+   ▼
 ScoreOutput
- │
- ├── ia_score
- └── justificativa
+   │
+   ├── ia_score
+   └── justificativa
 ```
 
-O score funciona como uma camada adicional de qualificação dos leads coletados.
+A classificação funciona como uma camada adicional de qualificação.
+
+Depois da avaliação, empresas que atendem aos critérios definidos pelo sistema podem originar registros de `Lead`.
 
 ---
 
 # Modelo de dados
 
-O modelo `Lead`, implementado com Pydantic, representa a estrutura padronizada dos dados utilizados pelo sistema.
+O modelo atual separa os dados cadastrais da empresa dos dados específicos de lead.
 
-Um lead pode conter:
+## Company
 
-- Nome da empresa.
-- Telefone.
-- Segmento.
-- Município.
-- Estado.
-- Website.
-- Avaliação.
-- Quantidade de avaliações.
-- Endereço.
-- Latitude.
-- Longitude.
-- Score de IA.
-- Justificativa da IA.
-- Referência interna da linha no Google Sheets.
+Representa os dados principais da empresa:
 
-A referência da linha é usada para permitir atualizações de registros existentes e não é persistida como uma coluna adicional da planilha.
+- `id`
+- `nome_empresa`
+- `telefone`
+- `segmento`
+- `ia_score`
+- `ia_justificativa`
+- `site`
+- `avaliacao`
+- `quantidade_avaliacoes`
+- `endereco`
+- `latitude`
+- `longitude`
+
+## Lead
+
+Representa uma oportunidade associada a uma empresa:
+
+- `id`
+- `company_id`
+- `ia_score`
+- `ia_justificativa`
+
+A relação entre os modelos é:
+
+```text
+Company
+   │
+   │ 1 : 1
+   ▼
+Lead
+```
+
+A separação permite que uma empresa exista independentemente da sua classificação como lead e deixa o relacionamento explícito na base relacional.
 
 ---
 
 # Armazenamento
 
-A classe `GoogleSheetsRepository` centraliza a persistência dos leads.
+A camada `src/backend/data_storage` concentra os componentes responsáveis pela persistência.
 
-Atualmente, fornece operações de:
-
-- **Create** — `save_leads()`
-- **Read** — `list_all()`
-- **Update** — `update_lead()` e `update_leads()`
-
-O método `update_lead()` permite atualizar um registro individual utilizando a linha armazenada no objeto `Lead`.
-
-O método `update_leads()` atualiza um conjunto de registros em lote, reduzindo a quantidade de requisições feitas à API do Google Sheets.
-
-A camada segue a ideia do padrão **Repository/DAO**, isolando a persistência do restante da aplicação.
+Estrutura atual:
 
 ```text
-DataProcessor
-      │
-      ▼
-GoogleSheetsRepository
-      │
-      ▼
-Google Sheets
+data_storage/
+├── company_repository.py
+├── lead_repository.py
+├── database.py
+├── schemas.sql
+├── sheets.py
+└── google_sheets_lead_repository.py
 ```
 
-A implementação foi organizada de forma a permitir uma futura substituição do Google Sheets por PostgreSQL sem acoplar a lógica de negócio ao mecanismo de persistência.
+### PostgreSQL
+
+O PostgreSQL é o armazenamento principal da aplicação.
+
+Os repositories isolam operações de:
+
+- **Create** — inserção de registros.
+- **Read** — consulta dos registros.
+- **Update** — atualização dos registros.
+
+O esquema relacional atual possui, principalmente:
+
+```text
+  companies
+      │
+      │
+      │
+      ▼
+    leads
+```
+
+A tabela `leads` possui uma chave estrangeira para `companies`.
+
+### Google Sheets
+
+O Google Sheets é utilizado como camada de sincronização e visualização.
+
+Ao final das operações de busca e backfill, os dados atuais do PostgreSQL são lidos pelos repositories e enviados para as abas:
+
+```text
+LeadFlow
+├── Empresas
+└── Leads
+```
+
+Essa separação permite substituir ou complementar a camada de apresentação sem alterar as regras de negócio.
 
 ---
 
@@ -373,11 +536,11 @@ A interface atualmente permite:
 - Bloquear novas interações durante operações em andamento.
 - Exibir resultados de busca.
 - Exibir resultados de Backfill.
-- Informar falhas de comunicação com a API.
+- Exibir erros retornados pela API.
 
 ## Componentização
 
-A interface foi dividida em componentes para manter o `App.jsx` focado na orquestração do estado e das operações.
+A interface foi dividida em componentes para manter o `App.jsx` focado na orquestração de estado e operações.
 
 ```text
 src/frontend/src/
@@ -393,32 +556,25 @@ src/frontend/src/
 
 ### `LeadFlowHeader`
 
-Responsável pela apresentação da identidade visual do LeadFlow.
+Responsável pela identidade visual do LeadFlow.
 
 ### `SearchForm`
 
-Responsável pelos campos de município e setor e pelas ações de:
-
-- Busca de leads.
-- Backfill.
-
-O componente recebe o estado de carregamento e as funções de execução através de props.
+Responsável pelos campos de município e setor e pelas ações de busca e Backfill.
 
 ### `FeedbackAlert`
 
-Responsável pelo feedback visual das operações.
-
-O componente diferencia:
+Responsável pelo feedback visual das operações, diferenciando:
 
 - Busca concluída.
 - Backfill concluído.
-- Erros de comunicação ou execução.
+- Erros retornados pela API.
 
 ---
 
 # Fluxo de execução
 
-### Busca
+## Busca
 
 ```text
 Usuário
@@ -427,9 +583,12 @@ Usuário
    ▼
 React
    │
-   │ POST /leads
+   │ POST /companies
    ▼
 FastAPI
+   │
+   ▼
+LeadFlow Service
    │
    ▼
 SerpAPI
@@ -440,7 +599,13 @@ DataProcessor
    ├── Deduplicação
    ├── Normalização
    ├── Resolução de website
-   └── IA
+   └── Classificação com IA
+   │
+   ▼
+PostgreSQL
+   │
+   ├── Companies
+   └── Leads
    │
    ▼
 Google Sheets
@@ -455,7 +620,7 @@ React
 Feedback visual
 ```
 
-### Backfill
+## Backfill
 
 ```text
 Usuário
@@ -469,16 +634,23 @@ React
 FastAPI
    │
    ▼
-Google Sheets
+LeadFlow Service
    │
    ▼
-DataProcessor.backfill()
+PostgreSQL
    │
-   ├── Reprocessamento de IA
+   ▼
+DataProcessor
+   │
+   ├── Reprocessamento de empresas
+   ├── Reavaliação de IA
    └── Resolução de websites
    │
    ▼
-GoogleSheetsRepository.update_leads()
+PostgreSQL
+   │
+   ▼
+Google Sheets
    │
    ▼
 FastAPI
@@ -498,6 +670,7 @@ Feedback visual
 
 - Python 3.10+
 - Node.js / npm
+- Docker com Docker Compose
 - Uma conta Google com acesso à planilha utilizada pelo projeto.
 - Credenciais de uma Google Service Account.
 - Chave da SerpAPI.
@@ -510,22 +683,34 @@ git clone <URL_DO_REPOSITORIO>
 cd LeadFlow
 ```
 
-## 2. Configure o backend
+## 2. Suba o PostgreSQL
 
-Crie e ative o ambiente virtual:
+O projeto utiliza Docker Compose para executar o banco PostgreSQL.
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
+docker compose up -d
 ```
 
-Instale as dependências:
+Verifique se o container do banco está em execução antes de iniciar o backend.
+
+## 3. Configure o backend
+
+O ambiente Python fica dentro de `src/backend`.
 
 ```bash
+cd src/backend
+python -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## 3. Configure as credenciais
+Volte para a raiz do projeto antes de iniciar a API:
+
+```bash
+cd ../..
+```
+
+## 4. Configure as credenciais
 
 Use `.env.example` como referência para criar o `.env` com as variáveis necessárias.
 
@@ -537,7 +722,7 @@ google-service-account-key.json.example
 
 > **Nunca versione credenciais reais, chaves de API ou arquivos `.env`.**
 
-## 4. Execute o backend
+## 5. Execute o backend
 
 Na raiz do projeto:
 
@@ -551,13 +736,13 @@ A API será disponibilizada em:
 http://127.0.0.1:8000
 ```
 
-A documentação interativa do FastAPI pode ser acessada em:
+A documentação interativa do FastAPI:
 
 ```text
 http://127.0.0.1:8000/docs
 ```
 
-## 5. Execute o frontend
+## 6. Execute o frontend
 
 Em outro terminal:
 
@@ -569,7 +754,7 @@ npm run dev
 
 O Vite informará no terminal o endereço local da aplicação.
 
-## 6. Usando o LeadFlow
+## 7. Usando o LeadFlow
 
 Na interface:
 
@@ -579,7 +764,7 @@ Na interface:
 
 O sistema executará o pipeline e exibirá o resultado ao final da operação.
 
-O botão **Backfill** executa o reprocessamento dos leads já existentes.
+O botão **Backfill** executa o reprocessamento dos dados já armazenados.
 
 Durante qualquer operação, a interface bloqueia novas interações para evitar execuções concorrentes.
 
@@ -609,6 +794,8 @@ As credenciais reais devem permanecer fora do controle de versão.
 - Uvicorn
 - Pydantic
 - SerpAPI
+- PostgreSQL
+- psycopg2
 - Google Sheets API
 - gspread
 - Google Gemini
@@ -621,11 +808,16 @@ As credenciais reais devem permanecer fora do controle de versão.
 - Vite
 - Mantine
 
+## Infraestrutura
+
+- Docker
+- Docker Compose
+
 ---
 
 # Comparação de métodos de extração
 
-## Gemini Pro com Grounding x Google Places API
+## Gemini Pro com Grounding × Google Places API
 
 | Critério | Gemini Pro com Grounding | Google Places API |
 | :--- | :--- | :--- |
@@ -634,7 +826,7 @@ As credenciais reais devem permanecer fora do controle de versão.
 | **Formato de saída** | Pode produzir Markdown, tabelas ou JSON. | Retorna dados estruturados para processamento. |
 | **Velocidade** | Pode ser mais lento devido ao processamento do modelo. | Resposta direta da API. |
 
-Durante o desenvolvimento, o Gemini com Grounding foi avaliado como fonte de busca, mas a implementação atual utiliza a SerpAPI como principal fonte de coleta.
+Durante o desenvolvimento, o Gemini com Grounding foi avaliado como alternativa de busca, mas a implementação atual utiliza a **SerpAPI** como principal fonte de coleta.
 
 ---
 
@@ -652,7 +844,7 @@ O Google Maps apresenta desafios para automação direta:
 
 Ferramentas como Selenium podem automatizar um navegador, mas aumentam a complexidade e o custo computacional.
 
-Por esse motivo, o MVP utiliza a SerpAPI em vez de realizar scraping direto do Google Maps.
+Por esse motivo, o MVP utiliza a **SerpAPI** em vez de realizar scraping direto do Google Maps.
 
 ---
 
@@ -665,10 +857,13 @@ LeadFlow/
 │   ├── backend/
 │   │   ├── main.py
 │   │   ├── models/
+│   │   ├── services/
+│   │   │   └── leadflow_service.py
 │   │   ├── data_collect/
 │   │   ├── data_process/
 │   │   ├── data_storage/
-│   │   └── tests/
+│   │   ├── tests/
+│   │   └── requirements.txt
 │   │
 │   └── frontend/
 │       ├── App.jsx
@@ -679,7 +874,6 @@ LeadFlow/
 │
 ├── .env.example
 ├── google-service-account-key.json.example
-├── requirements.txt
 ├── .gitignore
 └── README.md
 ```
@@ -688,18 +882,15 @@ LeadFlow/
 
 # Próximos passos
 
-- [ ] Implementar página/listagem dos leads.
-- [ ] Melhorar busca por segmento e localização.
-- [ ] Melhorar identificação de município e estado.
-- [ ] Implementar paginação para coleta de maiores volumes.
-- [ ] Expandir cobertura de testes.
-- [ ] Avaliar outras fontes públicas de dados.
+O MVP já cobre o fluxo principal de coleta, processamento, persistência, qualificação e sincronização. A partir daqui, as próximas melhorias podem ser escolhidas pelo ganho que trazem ao produto, sem exigir que toda a lista seja implementada para considerar o projeto concluído.
+
+- [ ] Implementar página de listagem e consulta de empresas e leads.
+- [ ] Criar tela de detalhes de uma empresa/lead.
+- [ ] Implementar paginação para coletas maiores.
 - [ ] Criar histórico das buscas realizadas.
-- [ ] Expandir o enriquecimento dos leads.
-- [ ] Refinar o sistema de classificação por IA.
-- [ ] Avaliar migração do Google Sheets para PostgreSQL.
+- [ ] Avaliar outras fontes públicas de dados.
+- [ ] Evoluir a sincronização com Google Sheets conforme o produto crescer.
 - [ ] Evoluir a aplicação para PWA.
-- [ ] Avaliar containerização com Docker.
 
 ---
 
@@ -707,22 +898,24 @@ LeadFlow/
 
 🚧 **MVP funcional**
 
-O LeadFlow atualmente integra coleta de dados, processamento, classificação por IA, persistência, API e interface web em um único fluxo operacional.
+O LeadFlow atualmente integra coleta de dados, processamento, classificação por IA, persistência relacional, API e interface web em um único fluxo operacional.
 
 O MVP já consegue:
 
 - Coletar empresas através da SerpAPI.
 - Evitar empresas já existentes.
 - Deduplicar resultados.
-- Normalizar os dados.
-- Construir objetos `Lead`.
+- Normalizar dados.
 - Resolver e validar websites.
-- Classificar leads utilizando IA.
-- Armazenar novos leads no Google Sheets.
+- Classificar empresas utilizando IA.
+- Gerar leads a partir das empresas qualificadas.
+- Persistir empresas e leads em PostgreSQL.
+- Sincronizar os dados persistidos com o Google Sheets.
 - Reprocessar registros existentes através do Backfill.
 - Atualizar registros já armazenados.
 - Expor o pipeline através de uma API FastAPI.
 - Consumir a API através de uma interface React.
 - Exibir estados de loading e feedback de sucesso/erro.
+- Propagar erros da API até a interface do usuário.
 
-O projeto segue em evolução, com foco em aprimorar a interface, ampliar o enriquecimento dos dados e evoluir a infraestrutura de armazenamento e execução.
+O projeto segue em evolução, com foco em melhorar a exploração dos dados, ampliar o enriquecimento e transformar o MVP em uma ferramenta de prospecção mais completa.
