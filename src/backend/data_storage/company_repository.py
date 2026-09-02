@@ -103,5 +103,43 @@ class CompanyRepository:
 
         return companies
 
+    def update(self, banco, companies: list[Company]):
+        cursor = banco.cursor()
+
+        cursor.executemany("""
+            UPDATE companies
+            SET
+                nome_empresa = %s,
+                telefone = %s,
+                segmento = %s,
+                ia_score = %s,
+                ia_justificativa = %s,
+                site = %s,
+                avaliacao = %s,
+                quantidade_avaliacoes = %s,
+                endereco = %s,
+                latitude = %s,
+                longitude = %s
+            WHERE id = %s
+        """, [
+            (
+                company.nome_empresa,
+                company.telefone,
+                company.segmento,
+                company.ia_score,
+                company.ia_justificativa,
+                company.site,
+                company.avaliacao,
+                company.quantidade_avaliacoes,
+                company.endereco,
+                company.latitude,
+                company.longitude,
+                company.id
+            )
+            for company in companies
+        ])
+
+        banco.commit()
+
     def find_by_name(self, name: str):
         ...

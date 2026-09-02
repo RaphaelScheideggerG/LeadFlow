@@ -26,7 +26,7 @@ class DataProcessor:
         # Alterar aqui para retornar progresso e.g 5/20 -> 6/20
         return companies
 
-    def backfill(self, companies: list[Company]) -> list[Company]:
+    def backfill_company(self, companies: list[Company]) -> list[Company]:
         for company in companies:
             if company.ia_score is None or company.ia_justificativa is None:
                 score = self.company_scorer.evaluate(company)
@@ -39,6 +39,21 @@ class DataProcessor:
                 company.site = self.website_resolver.resolve_website(company.site)
 
         return companies
+
+    def backfill_leads(self, leads: list[Lead]) -> list[Lead]:
+        for lead in leads:
+            if lead.ia_score is None or lead.ia_justificativa is None:
+                # Aqui você precisaria de uma forma de obter a empresa associada ao lead
+                # Isso pode ser feito através de um repositório ou outro mecanismo
+                # Por simplicidade, vamos assumir que você tem uma função para isso
+                company = self.get_company_by_id(lead.company_id)
+                if company:
+                    score = self.company_scorer.evaluate(company)
+                    if score:
+                        lead.ia_score = score.ia_score
+                        lead.ia_justificativa = score.justificativa
+
+        return leads
 
     def get_leads(
         self,
