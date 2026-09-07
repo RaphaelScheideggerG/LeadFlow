@@ -17,13 +17,21 @@ class DataProcessor:
             if company.nome_empresa
         ]
 
-    def process(self, results: list[dict], nomes_existentes: list[str] | None = None) -> list[Company]:
+    def process(
+        self,
+        results: list[dict],
+        nomes_existentes: list[str] | None = None,
+        search_id: int | None = None,
+    ) -> list[Company]:
+
         self._map_duplicates(results, nomes_existentes or [])
-
         resultados_deduplicados = self._deduplicate(results)
-        companies = [self._build_company(item) for item in resultados_deduplicados]
 
-        # Alterar aqui para retornar progresso e.g 5/20 -> 6/20
+        companies = [
+            self._build_company(item, search_id)
+            for item in resultados_deduplicados
+        ]
+
         return companies
 
     def backfill_company(self, companies: list[Company]) -> list[Company]:
@@ -107,32 +115,34 @@ class DataProcessor:
 
         return resultados_unicos
 
-    def _build_company(self, data: dict) -> Company:
+    def _build_company(
+        self,
+        data: dict,
+        search_id: int | None = None,
+    ) -> Company:
+
         gps = data.get("gps_coordinates") or {}
         links = data.get("links") or {}
 
         company = Company(
+            search_id=search_id,
             nome_empresa=data.get("title", "").strip(),
-
             telefone=data.get("phone"),
-
             segmento=data.get("type", ""),
-
-            site = self.website_resolver.resolve_website(links.get("website")),
-
+            site=self.website_resolver.resolve_website(
+                links.get("website")
+            ),
             ia_score=None,
             ia_justificativa=None,
-
             avaliacao=data.get("rating"),
             quantidade_avaliacoes=data.get("reviews"),
-
             endereco=data.get("address"),
             latitude=gps.get("latitude"),
             longitude=gps.get("longitude"),
         )
 
         score = self.company_scorer.evaluate(company)
-        
+
         if score:
             company.ia_score = score.ia_score
             company.ia_justificativa = score.justificativa

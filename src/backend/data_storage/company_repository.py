@@ -1,8 +1,4 @@
 from src.backend.models.company import Company
-from psycopg2.extras import execute_values
-
-
-from src.backend.models.company import Company
 
 
 class CompanyRepository:
@@ -12,6 +8,7 @@ class CompanyRepository:
         banco,
         companies: list[Company]
     ) -> list[Company]:
+
         if not companies:
             return []
         
@@ -20,6 +17,7 @@ class CompanyRepository:
         for company in companies:
             cursor.execute("""
                 INSERT INTO companies (
+                    search_id,
                     nome_empresa,
                     telefone,
                     segmento,
@@ -35,10 +33,11 @@ class CompanyRepository:
                 VALUES (
                     %s, %s, %s, %s, %s,
                     %s, %s, %s, %s,
-                    %s, %s
+                    %s, %s, %s
                 )
                 RETURNING id
             """, (
+                company.search_id,
                 company.nome_empresa,
                 company.telefone,
                 company.segmento,
@@ -65,6 +64,7 @@ class CompanyRepository:
         cursor.execute("""
             SELECT
                 id,
+                search_id,
                 nome_empresa,
                 telefone,
                 segmento,
@@ -86,17 +86,18 @@ class CompanyRepository:
         for row in rows:
             company = Company(
                 id=row[0],
-                nome_empresa=row[1],
-                telefone=row[2],
-                segmento=row[3],
-                ia_score=row[4],
-                ia_justificativa=row[5],
-                site=row[6],
-                avaliacao=row[7],
-                quantidade_avaliacoes=row[8],
-                endereco=row[9],
-                latitude=row[10],
-                longitude=row[11],
+                search_id=row[1],
+                nome_empresa=row[2],
+                telefone=row[3],
+                segmento=row[4],
+                ia_score=row[5],
+                ia_justificativa=row[6],
+                site=row[7],
+                avaliacao=row[8],
+                quantidade_avaliacoes=row[9],
+                endereco=row[10],
+                latitude=row[11],
+                longitude=row[12],
             )
 
             companies.append(company)
@@ -141,5 +142,5 @@ class CompanyRepository:
 
         banco.commit()
 
-    def find_by_name(self, name: str):
+    def find_by_id(self, id: int):
         ...

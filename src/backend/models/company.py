@@ -4,6 +4,8 @@ from pydantic import BaseModel
 class Company(BaseModel):
     id: int | None = None
     
+    search_id: int | None = None
+    
     nome_empresa: str
 
     telefone: str | None = None

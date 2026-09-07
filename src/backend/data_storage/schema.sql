@@ -1,5 +1,21 @@
+CREATE TABLE IF NOT EXISTS searches (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+
+    municipio TEXT NOT NULL,
+    setor TEXT NOT NULL,
+
+    total_correspondencias INTEGER NOT NULL DEFAULT 0,
+    total_empresas INTEGER NOT NULL DEFAULT 0,
+    total_leads INTEGER NOT NULL DEFAULT 0,
+
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS companies (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+
+    search_id BIGINT NOT NULL REFERENCES searches(id),
+
     nome_empresa TEXT UNIQUE NOT NULL,
     telefone TEXT,
     segmento TEXT,
@@ -15,7 +31,9 @@ CREATE TABLE IF NOT EXISTS companies (
 
 CREATE TABLE IF NOT EXISTS leads (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    company_id BIGINT NOT NULL REFERENCES companies(id),
+
+    company_id BIGINT NOT NULL UNIQUE REFERENCES companies(id),
+
     ia_score REAL NOT NULL,
     ia_justificativa TEXT
 );
