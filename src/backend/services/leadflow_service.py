@@ -136,32 +136,60 @@ def executar_backfill():
     company_data_from_db = company_repo.list_all(banco)
     lead_data_from_db = lead_repo.list_all(banco)
 
+    companies_backfilled_data, leads_to_save = processor.backfill(
+        company_data_from_db,
+        lead_data_from_db
+    )
 
-    company_backfilled_data = processor.backfill_company(company_data_from_db)
-    company_repo.update(banco, company_backfilled_data)
-    print(f"💾 Salvando {len(company_backfilled_data)} dados atualizados...")
+    # Atualiza as empresas que passaram pelo backfill
+    company_repo.update(banco, companies_backfilled_data)
 
-    lead_backfilled_data = processor.backfill_leads(lead_data_from_db)
-    lead_repo.update(banco, lead_backfilled_data)
-    print(f"💾 Salvando {len(lead_backfilled_data)} leads atualizados")
+    print(
+        f"💾 Salvando {len(companies_backfilled_data)} dados atualizados..."
+    )
 
-    print(f"Total no banco: {len(company_data_from_db)} empresas, {len(lead_data_from_db)} leads")
+    # Adiciona somente os novos leads encontrados
+    lead_repo.save_leads(banco, leads_to_save)
+
+    print(
+        f"💾 Salvando {len(leads_to_save)} novos leads..."
+    )
+
+    print(
+        f"Total no banco: "
+        f"{len(company_data_from_db)} empresas, "
+        f"{len(lead_data_from_db) + len(leads_to_save)} leads"
+    )
+
     try:
         sheet_pag1 = GoogleSheetsRepository(
             spreadsheet_name="LeadFlow",
             worksheet_name="Empresas",
         )
+
         sheet_pag2 = LeadGoogleSheetsRepository(
             spreadsheet_name="LeadFlow",
             worksheet_name="Leads",
         )
+
         companies_from_db = company_repo.list_all(banco)
         leads_from_db = lead_repo.list_all(banco)
+
         sheet_pag1.update_companies(companies_from_db)
         sheet_pag2.update_leads(leads_from_db)
-        print(f"💾 {len(companies_from_db)} empresas sincronizadas na planilha do Google")
-        print(f"💾 {len(leads_from_db)} leads sincronizados na planilha do Google")
+
+        print(
+            f"💾 {len(companies_from_db)} empresas "
+            "sincronizadas na planilha do Google"
+        )
+
+        print(
+            f"💾 {len(leads_from_db)} leads "
+            "sincronizados na planilha do Google"
+        )
+
     except Exception as e:
-        print(f"⚠️ Erro ao salvar na planilha do Google: {e}") 
+        print(f"⚠️ Erro ao salvar na planilha do Google: {e}")
         raise
-    return len(company_backfilled_data), len(lead_backfilled_data) 
+
+    return len(companies_backfilled_data), len(leads_to_save)
