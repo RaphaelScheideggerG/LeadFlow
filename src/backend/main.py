@@ -38,11 +38,10 @@ def buscar_companies(search: CompanySearch):
             "brutos": total_bruto,
             "salvos": total_salvo,
         }
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Erro ao buscar empresas: {e}"
-            )
+    except Exception:
+        import traceback
+        traceback.print_exc()
+        raise
 
 @app.post("/backfill")
 def backfill():
@@ -55,6 +54,7 @@ def backfill():
             "leads_atualizados": leads_atualizados,
         }
     except Exception as e:
+        print(f"⚠️ Erro ao realizar backfill: {e}")
         raise HTTPException(
             status_code=500, 
             detail=f"Erro ao realizar backfill: {e}"
