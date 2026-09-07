@@ -34,7 +34,12 @@ class DataProcessor:
 
         return companies
 
-    def backfill_company(self, companies: list[Company]) -> list[Company]:
+    def backfill(self, companies: list[Company], existing_leads: list[Lead]) -> tuple[list[Company], list[Lead]]:
+        """
+        Futuramente devemos mudar a forma como fazemos o backfill, para que seja feito de forma incremental, e não em lote retornando a tabela inteira.
+        """
+        # Company backfill
+        # preenche os campos de score e justificativa para empresas que ainda não possuem esses dados
         for company in companies:
             if company.ia_score is None or company.ia_justificativa is None:
                 score = self.company_scorer.evaluate(company)
@@ -46,22 +51,23 @@ class DataProcessor:
             if company.site:
                 company.site = self.website_resolver.resolve_website(company.site)
 
-        return companies
+        # Lead backfill
+        # preenche os leads com base nas empresas processadas
+        all_leads = self.get_leads(companies)
 
-    def backfill_leads(self, leads: list[Lead]) -> list[Lead]:
-        for lead in leads:
-            if lead.ia_score is None or lead.ia_justificativa is None:
-                # Aqui você precisaria de uma forma de obter a empresa associada ao lead
-                # Isso pode ser feito através de um repositório ou outro mecanismo
-                # Por simplicidade, vamos assumir que você tem uma função para isso
-                company = self.get_company_by_id(lead.company_id)
-                if company:
-                    score = self.company_scorer.evaluate(company)
-                    if score:
-                        lead.ia_score = score.ia_score
-                        lead.ia_justificativa = score.justificativa
+        leads_to_save = self.get_new_leads(all_leads, existing_leads)
 
-        return leads
+        return companies, leads_to_save
+
+    def get_new_leads(self, all_leads: list[Lead], existing_leads: list[Lead]) -> list[Lead]:
+        existing_lead_company_ids = {lead.company_id for lead in existing_leads}
+        new_leads = []
+
+        for lead in all_leads:
+            if ( (lead.company_id is not None) and (lead.company_id not in existing_lead_company_ids) ):
+                new_leads.append(lead)
+
+        return new_leads
 
     def get_leads(
         self,
