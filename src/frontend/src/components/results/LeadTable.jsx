@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { ScrollArea, Table, ActionIcon, Group } from '@mantine/core';
+import { ScrollArea, Table, ActionIcon, Group, Checkbox, Text } from '@mantine/core';
 import { IconEye, IconTrash } from '@tabler/icons-react';
-
 
 const mockData = [
   {
@@ -190,49 +189,47 @@ const mockData = [
   },
 ];
 
-
 export default function LeadTable({ data = mockData }) {
   const [scrolled, setScrolled] = useState(false);
+  const [selectedRows, setSelectedRows] = useState([]);
 
   const handleViewDetails = (lead) => {
     console.log('Ver detalhes:', lead);
   };
 
-  const handleDelete = (lead) => {
-    console.log('Deletar:', lead);
+  const handleDelete = (leads) => {
+    console.log('Deletar leads selecionados:', leads);
   };
 
+  const toggleRow = (id) =>
+    setSelectedRows((current) =>
+      current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
+    );
+
+  const toggleAll = () =>
+    setSelectedRows((current) =>
+      current.length === data.length ? [] : data.map((item) => item.id)
+    );
+
   const rows = data.map((row) => (
-    <Table.Tr key={row.id || row.name}>
-      {/* Coluna de Ações na esquerda */}
-      <Table.Td>
-        <Group gap="xs" wrap="nowrap">
-          <ActionIcon
-            variant="light"
-            color="blue"
-            size="sm"
-            onClick={() => handleViewDetails(row)}
-            title="Ver detalhes"
-          >
-            <IconEye size={16} />
-          </ActionIcon>
-          
-          <ActionIcon
-            variant="light"
-            color="red"
-            size="sm"
-            onClick={() => handleDelete(row)}
-            title="Salvar como Lead"
-          >
-            <IconTrash size={16} />
-          </ActionIcon>
-        </Group>
+    <Table.Tr
+      key={row.id}
+      bg={selectedRows.includes(row.id) ? 'var(--mantine-color-blue-light)' : undefined}
+      style={{ cursor: 'pointer' }}
+      onClick={() => handleViewDetails(row)}
+    >
+      {/* Coluna do Checkbox com stopPropagation */}
+      <Table.Td onClick={(e) => e.stopPropagation()}>
+        <Checkbox
+          aria-label="Select row"
+          checked={selectedRows.includes(row.id)}
+          onChange={() => toggleRow(row.id)}
+        />
       </Table.Td>
 
       <Table.Td>{row.name}</Table.Td>
       <Table.Td>{row.score}</Table.Td>
       <Table.Td>{row.justification}</Table.Td>
-
     </Table.Tr>
   ));
 
@@ -246,11 +243,48 @@ export default function LeadTable({ data = mockData }) {
       <Table miw={1300} highlightOnHover stickyHeader>
         <Table.Thead>
           <Table.Tr>
-            {/* Cabeçalho para a coluna de Ações */}
-            <Table.Th style={{ width: 80 }}>Ações</Table.Th>
-            <Table.Th>Name</Table.Th>
-            <Table.Th>Score</Table.Th>
-            <Table.Th>Justification</Table.Th>
+            {selectedRows.length > 0 ? (
+              // Barra de ações em lote no topo
+              <Table.Th colSpan={4} style={{ backgroundColor: 'var(--mantine-color-blue-light)' }}>
+                <Group justify="flex-start" gap="md" px="xs">
+                  <Checkbox
+                    onChange={toggleAll}
+                    checked={selectedRows.length === data.length}
+                    indeterminate={selectedRows.length > 0 && selectedRows.length !== data.length}
+                    aria-label="Select all rows"
+                  />
+                  
+                  <ActionIcon
+                    variant="filled"
+                    color="red"
+                    size="sm"
+                    onClick={() => handleDelete(selectedRows)}
+                    title="Excluir selecionados"
+                  >
+                    <IconTrash size={16} />
+                  </ActionIcon>
+
+                  <Text size="sm" fw={600}>
+                    {selectedRows.length} selecionado(s)
+                  </Text>
+                </Group>
+              </Table.Th>
+            ) : (
+              // Cabeçalho normal padrão
+              <>
+                <Table.Th style={{ width: 40 }}>
+                  <Checkbox
+                    onChange={toggleAll}
+                    checked={selectedRows.length === data.length}
+                    indeterminate={selectedRows.length > 0 && selectedRows.length !== data.length}
+                    aria-label="Select all rows"
+                  />
+                </Table.Th>
+                <Table.Th>Name</Table.Th>
+                <Table.Th>Score</Table.Th>
+                <Table.Th>Justification</Table.Th>
+              </>
+            )}
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>{rows}</Table.Tbody>

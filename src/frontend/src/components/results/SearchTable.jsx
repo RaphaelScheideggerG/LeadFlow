@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ScrollArea, Table, ActionIcon, Group } from '@mantine/core';
+import { ScrollArea, Table, ActionIcon, Group, Checkbox, Avatar, Text} from '@mantine/core';
+
 import { IconEye, IconTrash } from '@tabler/icons-react';
 
 
@@ -63,6 +64,7 @@ const mockData= [
 
 export default function SearchTable({ data = mockData }) {
   const [scrolled, setScrolled] = useState(false);
+  const [selectedRows, setSelectedRows] = useState([]);
 
   const handleViewDetails = (search) => {
     console.log('Ver detalhes:', search);
@@ -71,44 +73,42 @@ export default function SearchTable({ data = mockData }) {
   const handleDelete = (search) => {
     console.log('Deletar:', search);
   };
+  
+  const toggleRow = (id) =>
+  setSelectedRows((current) =>
+    current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
+  );
+
+  const toggleAll = () =>
+    setSelectedRows((current) => (current.length === data.length ? [] : data.map((item) => item.id)));
+
 
   const rows = data.map((row) => (
-    <Table.Tr key={row.id || row.name}>
-      {/* Coluna de Ações na esquerda */}
-      <Table.Td>
-        <Group gap="xs" wrap="nowrap">
-          <ActionIcon
-            variant="light"
-            color="blue"
-            size="sm"
-            onClick={() => handleViewDetails(row)}
-            title="Ver detalhes"
-          >
-            <IconEye size={16} />
-          </ActionIcon>
-          
-          <ActionIcon
-            variant="light"
-            color="red"
-            size="sm"
-            onClick={() => handleDelete(row)}
-            title="Salvar como Lead"
-          >
-            <IconTrash size={16} />
-          </ActionIcon>
-        </Group>
+    <Table.Tr 
+      key={row.id}
+      bg={selectedRows.includes(row.id) ? 'var(--mantine-color-blue-light)' : undefined}
+      style={{ cursor: 'pointer' }}
+      onClick={() => handleViewDetails(row)}
+    >
+      {/* Coluna do Checkbox */}
+      <Table.Td onClick={(e) => e.stopPropagation()}>
+        <Checkbox
+          aria-label="Select row"
+          checked={selectedRows.includes(row.id)}
+          onChange={() => toggleRow(row.id)}
+        />
       </Table.Td>
 
-      <Table.Td>{row.id}</Table.Td>
       <Table.Td>{row.municipio}</Table.Td>
       <Table.Td>{row.setor}</Table.Td>
       <Table.Td>{row.total_correspondencias}</Table.Td>
       <Table.Td>{row.total_empresas}</Table.Td>
       <Table.Td>{row.total_leads}</Table.Td>
+      
+      {/* Data formatada nativa do JS */}
       <Table.Td>
         {new Date(row.timestamp).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
       </Table.Td>
-
     </Table.Tr>
   ));
 
@@ -119,20 +119,57 @@ export default function SearchTable({ data = mockData }) {
       offsetScrollbars
       onScrollPositionChange={({ y }) => setScrolled(y !== 0)}
     >
-      <Table miw={1300} highlightOnHover stickyHeader>
+      <Table miw={1100} highlightOnHover stickyHeader>
         <Table.Thead>
           <Table.Tr>
-            {/* Cabeçalho para a coluna de Ações */}
-            <Table.Th style={{ width: 80 }}>Ações</Table.Th>
-            <Table.Th>Id</Table.Th>
-            <Table.Th>Municipio</Table.Th>
-            <Table.Th>Setor</Table.Th>
-            <Table.Th>Correspondencias</Table.Th>
-            <Table.Th>Empresas</Table.Th>
-            <Table.Th>Leads</Table.Th>
-            <Table.Th>Data</Table.Th>
+            {selectedRows.length > 0 ? (
+              // Barra de ações em lote no topo quando houver seleção
+              <Table.Th colSpan={8} style={{ backgroundColor: 'var(--mantine-color-blue-light)' }}>
+                <Group justify="flex-start" gap="md" px="xs">
+                  {/* Checkbox para desselecionar ou gerenciar o estado global */}
+                  <Checkbox
+                    onChange={toggleAll}
+                    checked={selectedRows.length === data.length}
+                    indeterminate={selectedRows.length > 0 && selectedRows.length !== data.length}
+                    aria-label="Select all rows"
+                  />
+                  
+                  {/* Botão da lixeira logo no comecinho, pertinho do checkbox */}
+                  <ActionIcon
+                    variant="filled"
+                    color="red"
+                    size="sm"
+                    onClick={() => handleDelete(selectedRows)}
+                    title="Excluir selecionados"
+                  >
+                    <IconTrash size={32} />
+                  </ActionIcon>
 
-
+                  {/* Texto indicativo da quantidade */}
+                  <Text size="sm" fw={600}>
+                    {selectedRows.length} selecionado(s)
+                  </Text>
+                </Group>
+              </Table.Th>
+            ) : (
+              // Cabeçalho normal padrão
+              <>
+                <Table.Th style={{ width: 40 }}>
+                  <Checkbox
+                    onChange={toggleAll}
+                    checked={selectedRows.length === data.length}
+                    indeterminate={selectedRows.length > 0 && selectedRows.length !== data.length}
+                    aria-label="Select all rows"
+                  />
+                </Table.Th>
+                <Table.Th>Município</Table.Th>
+                <Table.Th>Setor</Table.Th>
+                <Table.Th>Correspondências</Table.Th>
+                <Table.Th>Empresas</Table.Th>
+                <Table.Th>Leads</Table.Th>
+                <Table.Th>Data</Table.Th>
+              </>
+            )}
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>{rows}</Table.Tbody>
