@@ -267,7 +267,7 @@ export default function CompanyTable({ data = mockData }) {
                     onClick={() => handleDelete(selectedRows)}
                     title="Excluir selecionados"
                   >
-                    <IconTrash size={16} />
+                    <IconTrash size={32} />
                   </ActionIcon>
 
                   <Text size="sm" fw={600}>
