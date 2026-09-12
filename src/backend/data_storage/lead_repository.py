@@ -1,4 +1,5 @@
 from src.backend.models.lead import Lead
+from src.backend.models.lead import LeadResult
 
 
 class LeadRepository:
@@ -73,3 +74,36 @@ class LeadRepository:
         ])
 
         banco.commit()
+
+
+    def list_all_with_company(self, banco) -> list[LeadResult]:
+        cursor = banco.cursor()
+
+        cursor.execute("""
+            SELECT
+                leads.id,
+                leads.company_id,
+                companies.nome_empresa,
+                leads.ia_score,
+                leads.ia_justificativa
+            FROM leads
+            JOIN companies
+                ON leads.company_id = companies.id
+        """)
+
+        rows = cursor.fetchall()
+
+        leads = []
+
+        for row in rows:
+            lead = LeadResult(
+                id=row[0],
+                company_id=row[1],
+                nome_empresa=row[2],
+                ia_score=row[3],
+                ia_justificativa=row[4]
+            )
+
+            leads.append(lead)
+
+        return leads

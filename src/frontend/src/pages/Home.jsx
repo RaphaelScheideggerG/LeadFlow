@@ -27,7 +27,7 @@ export default function Home() {
     setResultado(null);
 
     try {
-      const response = await fetch("http://localhost:8000/companies", {
+      const response = await fetch("http://localhost:8000/search-companies", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
