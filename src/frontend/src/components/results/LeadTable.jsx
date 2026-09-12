@@ -67,7 +67,7 @@ export default function LeadTable({ data, loading }) {
         />
       </Table.Td>
 
-      <Table.Td>{row.company_id}</Table.Td>
+      <Table.Td>{row.nome_empresa}</Table.Td>
       <Table.Td>{row.ia_score}</Table.Td>
       <Table.Td>{row.ia_justificativa}</Table.Td>
     </Table.Tr>

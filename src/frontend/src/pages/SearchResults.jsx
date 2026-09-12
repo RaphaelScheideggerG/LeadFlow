@@ -6,6 +6,7 @@ import { IconMenu2 } from '@tabler/icons-react';
 import SearchTable from '../components/results/SearchTable';
 import SideMenu from '../components/SideMenu';
 
+
 export default function SearchResults() {
   const [opened, { open, close }] = useDisclosure(false);
 

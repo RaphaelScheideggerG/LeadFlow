@@ -40,7 +40,7 @@ class CompanyCollector:
                 {
                     "engine": "google_local",
                     "q": query,
-                    "location": f"{self.municipality}, Brazil",
+                    "location": "Brazil",
                     "google_domain": "google.com",
                     "hl": "pt-br",
                     "gl": "br",

@@ -1,10 +1,14 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+import traceback
 
 from src.backend.models.company_search import CompanySearch
 from src.backend.services.leadflow_service import (
     executar_busca,
     executar_backfill,
+    retornar_buscas,
+    retornar_companies,
+    retornar_leads
 )
 from src.backend.data_storage.database import inicializar_banco
 
@@ -23,7 +27,7 @@ app.add_middleware(
 )
 
 
-@app.post("/companies")
+@app.post("/search-companies")
 def buscar_companies(search: CompanySearch):
     try:
         total_bruto, total_salvo = executar_busca(
@@ -38,10 +42,12 @@ def buscar_companies(search: CompanySearch):
             "brutos": total_bruto,
             "salvos": total_salvo,
         }
-    except Exception:
-        import traceback
-        traceback.print_exc()
-        raise
+    except Exception as e:
+        print(f"⚠️ Erro ao realizar busca: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao realizar backfill: {e}"
+        )
 
 @app.post("/backfill")
 def backfill():
@@ -59,3 +65,44 @@ def backfill():
             status_code=500, 
             detail=f"Erro ao realizar backfill: {e}"
             )
+
+@app.get("/searches")
+def list_searchs():
+    try:
+        return retornar_buscas()
+
+    except Exception as e:
+        print(f"⚠️ Erro ao listar buscas: {e}")
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao listar buscas: {e}"
+        )
+
+
+@app.get("/companies")
+def listar_companies():
+    try:
+        return retornar_companies()
+
+    except Exception as e:
+        print(f"⚠️ Erro ao listar companies: {e}")
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao listar companies: {e}"
+        )
+
+
+@app.get("/leads")
+def listar_leads():
+    try:
+        return retornar_leads()
+
+    except Exception as e:
+        print(f"⚠️ Erro ao listar leads: {e}")
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao listar leads: {e}"
+        )

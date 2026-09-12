@@ -10,6 +10,9 @@ from src.backend.data_storage.google_sheets_lead_repository import LeadGoogleShe
 from src.backend.data_storage.database import obter_conexao
 
 from src.backend.models.search import Search
+from src.backend.models.company import Company
+from src.backend.models.lead import Lead
+from src.backend.models.lead import LeadResult
 
 
 def executar_busca(municipio: str, segmento: str):
@@ -193,3 +196,36 @@ def executar_backfill():
         raise
 
     return len(companies_backfilled_data), len(leads_to_save)
+
+
+def retornar_buscas() -> list[Search]:
+    # Banco
+    banco = obter_conexao()
+
+    # Repositório
+    search_repo = SearchRepository()
+
+    buscas = search_repo.list_all(banco)
+
+    return buscas
+
+def retornar_companies() -> list[Company]:
+    # Banco
+    banco = obter_conexao()
+
+    # Repositório
+    company_repo = CompanyRepository()
+    companies = company_repo.list_all(banco)
+
+    return companies
+
+
+def retornar_leads() -> list[LeadResult]:
+    # Banco
+    banco = obter_conexao()
+
+    # Repositório
+    lead_repo = LeadRepository()
+    leads = lead_repo.list_all_with_company(banco)
+
+    return leads

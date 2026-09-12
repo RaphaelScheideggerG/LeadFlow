@@ -67,7 +67,6 @@ export default function SearchTable({ data, loading }) {
         />
       </Table.Td>
 
-      <Table.Td>{row.id}</Table.Td>
       <Table.Td>{row.municipio}</Table.Td>
       <Table.Td>{row.setor}</Table.Td>
       <Table.Td>{row.total_correspondencias}</Table.Td>
@@ -139,7 +138,6 @@ export default function SearchTable({ data, loading }) {
                   />
                 </Table.Th>
 
-                <Table.Th>Id</Table.Th>
                 <Table.Th>Município</Table.Th>
                 <Table.Th>Setor</Table.Th>
                 <Table.Th>Correspondências</Table.Th>
