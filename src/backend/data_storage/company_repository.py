@@ -141,6 +141,20 @@ class CompanyRepository:
         ])
 
         banco.commit()
+    def delete_many(self, banco, ids: list[int]) -> list[int]:
+        cursor = banco.cursor()
+
+        cursor.execute("""
+            DELETE FROM companies
+            WHERE id = ANY(%s)
+            RETURNING id
+        """, (ids,))
+
+        deleted_ids = [row[0] for row in cursor.fetchall()]
+
+        banco.commit()
+
+        return deleted_ids
 
     def find_by_id(self, id: int):
         ...

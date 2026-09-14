@@ -1,5 +1,3 @@
-import { useState } from 'react';
-
 import {
   ScrollArea,
   Table,
@@ -13,15 +11,15 @@ import {
 
 import { IconTrash } from '@tabler/icons-react';
 
-export default function CompanyTable({ data, loading }) {
-  const [selectedRows, setSelectedRows] = useState([]);
-
+export default function CompanyTable({ 
+  data, 
+  loading, 
+  setOpenedDeleteMenu, 
+  selectedRows, 
+  setSelectedRows 
+}) {
   const handleViewDetails = (company) => {
     console.log('Ver detalhes:', company);
-  };
-
-  const handleDelete = (companies) => {
-    console.log('Deletar selecionadas:', companies);
   };
 
   const toggleRow = (id) => {
@@ -110,10 +108,10 @@ export default function CompanyTable({ data, loading }) {
                     variant="filled"
                     color="red"
                     size="sm"
-                    onClick={() => handleDelete(selectedRows)}
+                    onClick={() => setOpenedDeleteMenu(true)}
                     title="Excluir selecionados"
                   >
-                    <IconTrash size={32} />
+                    <IconTrash size={16} />
                   </ActionIcon>
 
                   <Text size="sm" fw={600}>

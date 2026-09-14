@@ -6,9 +6,14 @@ from src.backend.models.company_search import CompanySearch
 from src.backend.services.leadflow_service import (
     executar_busca,
     executar_backfill,
+
     retornar_buscas,
     retornar_companies,
-    retornar_leads
+    retornar_leads,
+
+    excluir_buscas,
+    excluir_empresas,
+    excluir_leads,
 )
 from src.backend.data_storage.database import inicializar_banco
 
@@ -49,6 +54,7 @@ def buscar_companies(search: CompanySearch):
             detail=f"Erro ao realizar backfill: {e}"
         )
 
+
 @app.post("/backfill")
 def backfill():
     try:
@@ -66,6 +72,7 @@ def backfill():
             detail=f"Erro ao realizar backfill: {e}"
             )
 
+
 @app.get("/searches")
 def list_searchs():
     try:
@@ -78,7 +85,6 @@ def list_searchs():
             status_code=500,
             detail=f"Erro ao listar buscas: {e}"
         )
-
 
 @app.get("/companies")
 def listar_companies():
@@ -93,7 +99,6 @@ def listar_companies():
             detail=f"Erro ao listar companies: {e}"
         )
 
-
 @app.get("/leads")
 def listar_leads():
     try:
@@ -105,4 +110,43 @@ def listar_leads():
         raise HTTPException(
             status_code=500,
             detail=f"Erro ao listar leads: {e}"
+        )
+
+@app.delete("/delete-searches")
+def deletar_buscas(ids: list[int]):
+    try:
+        deleted_ids = excluir_buscas(ids)
+        return deleted_ids
+    except Exception as e:
+        print(f"⚠️ Erro ao deletar buscas: {e}")
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao deletar buscas: {e}"
+        )
+
+@app.delete("/delete-companies")
+def deletar_empresas(ids: list[int]):
+    try:
+        deleted_ids = excluir_empresas(ids)
+        return deleted_ids
+    except Exception as e:
+        print(f"⚠️ Erro ao deletar empresas: {e}")
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao deletar empresas: {e}"
+        )
+
+@app.delete("/delete-leads")
+def deletar_leads(ids: list[int]):
+    try:
+        deleted_ids = excluir_leads(ids)
+        return deleted_ids
+    except Exception as e:
+        print(f"⚠️ Erro ao deletar leads: {e}")
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao deletar leads: {e}"
         )

@@ -1,5 +1,4 @@
-import { useState } from 'react';
-
+import { IconTrash } from '@tabler/icons-react';
 import {
   ScrollArea,
   Table,
@@ -11,17 +10,10 @@ import {
   Center,
 } from '@mantine/core';
 
-import { IconTrash } from '@tabler/icons-react';
 
-export default function SearchTable({ data, loading }) {
-  const [selectedRows, setSelectedRows] = useState([]);
-
+export default function SearchTable({data, loading, setOpenedDeleteMenu, selectedRows, setSelectedRows}) {
   const handleViewDetails = (search) => {
     console.log('Ver detalhes:', search);
-  };
-
-  const handleDelete = (searches) => {
-    console.log('Deletar:', searches);
   };
 
   const toggleRow = (id) => {
@@ -113,7 +105,7 @@ export default function SearchTable({ data, loading }) {
                     variant="filled"
                     color="red"
                     size="sm"
-                    onClick={() => handleDelete(selectedRows)}
+                    onClick={() => setOpenedDeleteMenu(true)}
                     title="Excluir selecionados"
                   >
                     <IconTrash size={16} />
