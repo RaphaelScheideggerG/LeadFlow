@@ -89,10 +89,20 @@ class SearchRepository:
         banco.commit()
         cursor.close()
 
-    def delete(self, banco, search_id: int):
-        ...
+    def delete_many(self, banco, ids: list[int]) -> list[int]:
+        cursor = banco.cursor()
+
+        cursor.execute("""
+            DELETE FROM searches
+            WHERE id = ANY(%s)
+            RETURNING id
+        """, (ids,))
+
+        deleted_ids = [row[0] for row in cursor.fetchall()]
+
+        banco.commit()
+
+        return deleted_ids
 
     def find_by_id(self, banco, id: int) -> Search | None:
         ...
-
-

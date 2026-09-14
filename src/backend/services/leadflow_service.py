@@ -31,7 +31,6 @@ def executar_busca(municipio: str, segmento: str):
     # Processador
     processor = DataProcessor()
 
-
     # cria objeto de busca para armazenar no banco
     search = Search(
         municipio=municipio,
@@ -199,33 +198,47 @@ def executar_backfill():
 
 
 def retornar_buscas() -> list[Search]:
-    # Banco
     banco = obter_conexao()
 
-    # Repositório
     search_repo = SearchRepository()
-
     buscas = search_repo.list_all(banco)
 
     return buscas
 
 def retornar_companies() -> list[Company]:
-    # Banco
     banco = obter_conexao()
 
-    # Repositório
     company_repo = CompanyRepository()
     companies = company_repo.list_all(banco)
 
     return companies
 
-
 def retornar_leads() -> list[LeadResult]:
-    # Banco
     banco = obter_conexao()
 
-    # Repositório
     lead_repo = LeadRepository()
     leads = lead_repo.list_all_with_company(banco)
 
     return leads
+
+
+def excluir_buscas(ids: list[int]) -> list[Search]:
+    banco = obter_conexao()
+
+    search_repo = SearchRepository()
+    deleted = search_repo.delete_many(banco, ids)
+    return deleted
+
+def excluir_empresas(ids: list[int]) -> list[Company]:
+    banco = obter_conexao()
+
+    company_repo = CompanyRepository()
+    deleted = company_repo.delete_many(banco, ids)
+    return deleted
+
+def excluir_leads(ids: list[int]) -> list[Lead]:
+    banco = obter_conexao()
+
+    lead_repo = LeadRepository()
+    deleted = lead_repo.delete_many(banco, ids)
+    return deleted

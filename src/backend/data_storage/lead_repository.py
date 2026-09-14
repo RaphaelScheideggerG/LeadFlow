@@ -107,3 +107,18 @@ class LeadRepository:
             leads.append(lead)
 
         return leads
+
+    def delete_many(self, banco, ids: list[int]) -> list[int]:
+        cursor = banco.cursor()
+
+        cursor.execute("""
+            DELETE FROM leads
+            WHERE id = ANY(%s)
+            RETURNING id
+        """, (ids,))
+
+        deleted_ids = [row[0] for row in cursor.fetchall()]
+
+        banco.commit()
+
+        return deleted_ids

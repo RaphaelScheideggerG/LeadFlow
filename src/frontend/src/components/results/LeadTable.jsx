@@ -1,5 +1,3 @@
-import { useState } from 'react';
-
 import {
   ScrollArea,
   Table,
@@ -13,15 +11,15 @@ import {
 
 import { IconTrash } from '@tabler/icons-react';
 
-export default function LeadTable({ data, loading }) {
-  const [selectedRows, setSelectedRows] = useState([]);
-
+export default function LeadTable({ 
+  data, 
+  loading, 
+  setOpenedDeleteMenu, 
+  selectedRows, 
+  setSelectedRows 
+}) {
   const handleViewDetails = (lead) => {
     console.log('Ver detalhes:', lead);
-  };
-
-  const handleDelete = (leads) => {
-    console.log('Deletar leads selecionados:', leads);
   };
 
   const toggleRow = (id) => {
@@ -84,7 +82,7 @@ export default function LeadTable({ data, loading }) {
           <Table.Tr>
             {selectedRows.length > 0 ? (
               <Table.Th
-                colSpan={5}
+                colSpan={4}
                 style={{
                   backgroundColor: 'var(--mantine-color-blue-light)',
                 }}
@@ -104,10 +102,10 @@ export default function LeadTable({ data, loading }) {
                     variant="filled"
                     color="red"
                     size="sm"
-                    onClick={() => handleDelete(selectedRows)}
+                    onClick={() => setOpenedDeleteMenu(true)}
                     title="Excluir selecionados"
                   >
-                    <IconTrash size={32} />
+                    <IconTrash size={16} />
                   </ActionIcon>
 
                   <Text size="sm" fw={600}>
