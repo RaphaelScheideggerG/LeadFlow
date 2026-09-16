@@ -1,15 +1,5 @@
-import os
-
 import serpapi
-from dotenv import load_dotenv
-
-
-load_dotenv()
-
-SERPAPI_KEY = os.getenv("SERPAPI_KEY")
-
-if not SERPAPI_KEY:
-    raise ValueError("SERPAPI_KEY não encontrada no .env")
+from fastapi import HTTPException
 
 
 class CompanyCollector:
@@ -17,9 +7,10 @@ class CompanyCollector:
     def __init__(
         self,
         municipality: str,
-        quantity: int = 10,
-        segment: str = "empresas",
-        additional_criteria: str | None = None,
+        segment: str,
+        api_key: str,
+        quantity: int | None = None, # Não em uso para limitação da quantidade (maximo de 20 da API)
+        additional_criteria: str | None = None, # Não em uso
         names_in_storage: list[str] | None = None,
     ):
         self.segment = segment
@@ -27,8 +18,9 @@ class CompanyCollector:
         self.additional_criteria = additional_criteria
         self.quantity = quantity
         self.names_in_storage = names_in_storage
+        self.api_key = api_key
 
-        self.client = serpapi.Client(api_key=SERPAPI_KEY)
+        self.client = serpapi.Client(api_key=self.api_key)
 
     def collect_companies(self) -> list[dict]:
         query = self._build_query()
@@ -50,16 +42,21 @@ class CompanyCollector:
             local_results = results.get("local_results", [])
 
             if not local_results:
-                print("⚠️ Nenhum resultado encontrado.")
                 return []
 
-            print(f"✅ {len(local_results)} empresas coletadas.")
-            print(f"nome das empresas coletadas: {[company.get('title') for company in local_results]}")
             return local_results
 
-        except Exception as error:
-            print(f"❌ Erro ao coletar empresas: {error}")
-            return []
+        except serpapi.HTTPError as e:
+            if e.status_code == 401:
+                raise HTTPException(
+                    status_code=401,
+                    detail=f"Chave inválida da SerpApi.",
+                )
+
+            raise HTTPException(
+                status_code=502,
+                detail=f"Não foi possível consultar a SerpApi.",
+            )
 
     def _build_query(self) -> str:
         query_parts = [self.segment, self.municipality]

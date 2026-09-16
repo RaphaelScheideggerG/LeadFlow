@@ -42,7 +42,10 @@ export default function FeedbackAlert({ resultado }) {
           </Text>
 
           <Text size="sm" ta="center">
-            🔄 Leads processados: <b>{resultado.atualizados}</b>
+            🔄 <b>{resultado.empresas_atualizadas}</b> Empresas Verificadas
+          </Text>
+          <Text size="sm" ta="center">
+            🔄 <b>{resultado.leads_atualizados}</b> Leads Atualizados
           </Text>
         </Stack>
       </Alert>
@@ -57,11 +60,15 @@ export default function FeedbackAlert({ resultado }) {
     >
       <Stack gap={4}>
         <Text size="sm">
-          🔍 Busca bruta: <b>{resultado.brutos}</b> empresas
+          🔍 Busca bruta: <b>{resultado.brutos}</b> empresas encontradas
         </Text>
 
         <Text size="sm">
-          ✨ Novos leads: <b>{resultado.salvos}</b>
+          ✨ Novas Empresas: <b>{resultado.salvos}</b>
+        </Text>
+
+        <Text size="sm">
+          ✨ Novos Leads: <b>{resultado.leads}</b>
         </Text>
       </Stack>
     </Alert>

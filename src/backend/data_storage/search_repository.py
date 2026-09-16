@@ -32,6 +32,7 @@ class SearchRepository:
         return search
 
     def list_all(self, banco) -> list[Search]:
+
         cursor = banco.cursor()
 
         cursor.execute("""
@@ -44,6 +45,7 @@ class SearchRepository:
                 total_leads,
                 timestamp
             FROM searches
+            ORDER BY timestamp DESC, id DESC
         """)
 
         rows = cursor.fetchall()
@@ -51,6 +53,7 @@ class SearchRepository:
         searches = []
 
         for row in rows:
+
             search = Search(
                 id=row[0],
                 municipio=row[1],
