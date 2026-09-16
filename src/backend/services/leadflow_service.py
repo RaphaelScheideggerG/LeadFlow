@@ -3,9 +3,7 @@ from src.backend.data_process.data_processor import DataProcessor
 
 from src.backend.data_storage.company_repository import CompanyRepository
 from src.backend.data_storage.lead_repository import LeadRepository
-from src.backend.data_storage.sheets import GoogleSheetsRepository
 from src.backend.data_storage.search_repository import SearchRepository
-from src.backend.data_storage.google_sheets_lead_repository import LeadGoogleSheetsRepository
 
 from src.backend.data_storage.database import obter_conexao
 
@@ -14,11 +12,22 @@ from src.backend.models.company import Company
 from src.backend.models.lead import Lead
 from src.backend.models.lead import LeadResult
 
+import os
+from dotenv import load_dotenv
+
 
 def executar_busca(municipio: str, segmento: str):
     print("=" * 60)
     print("🎯 COLETANDO EMPRESAS")
     print("=" * 60)
+
+    # carrega variaveis do env
+    load_dotenv()
+
+    # Serp API
+    SERPAPI_KEY = os.getenv("SERPAPI_KEY")
+    if not SERPAPI_KEY or SERPAPI_KEY == "":
+        raise ValueError("SERPAPI_KEY não encontrada")
 
     # Banco
     banco = obter_conexao()
@@ -32,6 +41,11 @@ def executar_busca(municipio: str, segmento: str):
     processor = DataProcessor()
 
     # cria objeto de busca para armazenar no banco
+    if not municipio:
+        municipio = "Brasília"
+    if not segmento:
+        segmento = "Tecnologia"
+
     search = Search(
         municipio=municipio,
         setor=segmento,
@@ -41,7 +55,9 @@ def executar_busca(municipio: str, segmento: str):
     search = search_repo.save_search(banco, search)
 
     # lista companias existentes no banco
-    data_from_db = company_repo.list_all(banco)
+    # Aqui a gente chama um metodo que recebe municipio e estado e retorna as correspondencias
+    # com esses valores
+    data_from_db = company_repo.list_all(banco) 
 
     # adquire nomes existentes no banco para tentariva de exclusão na busca
     search_exclusion_list = processor.get_names(data_from_db)
@@ -49,14 +65,18 @@ def executar_busca(municipio: str, segmento: str):
     # Coletor
     collector = CompanyCollector(
         municipality=municipio,
-        additional_criteria=None,
-        names_in_storage=search_exclusion_list,
+        segment=segmento,
+        api_key=SERPAPI_KEY,
+        # names_in_storage=search_exclusion_list, # FIX: Lista de exlcusão inteligente
     )
-    if segmento:
-        collector.segment = segmento
 
     # realiza a coleta de empresas
     raw_results = collector.collect_companies()
+
+    if raw_results:
+        print(f"✅ {len(raw_results)} empresas coletadas.")
+    else:
+        print("⚠️ Nenhum resultado encontrado.")
 
     # armazena quantidade bruta de correspondências encontradas na busca
     total_bruto = len(raw_results)
@@ -82,7 +102,7 @@ def executar_busca(municipio: str, segmento: str):
     leads = processor.get_leads(saved_companies)
 
     # armazena quantidade de leads gerados
-    total_lead_gerados = len(leads)
+    total_leads_salvos = len(leads)
 
     # salva os leads no banco de dados
     lead_repo.save_leads(banco, leads)
@@ -94,40 +114,19 @@ def executar_busca(municipio: str, segmento: str):
     # atualiza a busca com os totais de correspondências, empresas e leads
     search.total_correspondencias = total_bruto
     search.total_empresas = total_empresas_salvas
-    search.total_leads = total_lead_gerados
+    search.total_leads = total_leads_salvos
+    # atualiza a busca no banco
     search_repo.update(banco, search)
 
-    # Sincronizar dados no Google Sheets
-    try:
-
-        sheet_pag1 = GoogleSheetsRepository(
-            spreadsheet_name="LeadFlow",
-            worksheet_name="Empresas",
-        )
-        sheet_pag2 = LeadGoogleSheetsRepository(
-            spreadsheet_name="LeadFlow",
-            worksheet_name="Leads",
-        )
-
-        companies_from_db = company_repo.list_all(banco)
-        leads_from_db = lead_repo.list_all(banco)
-
-        sheet_pag1.update_companies(companies_from_db)
-        sheet_pag2.update_leads(leads_from_db)
-
-        print(f"💾 {len(companies_from_db)} empresas salvas na planilha do Google")
-        print(f"💾 {len(leads_from_db)} leads salvos na planilha do Google")
-
-    except Exception as e:
-        print(f"⚠️ Erro ao salvar na planilha do Google: {e}")
-        raise
-
-    return total_bruto, total_empresas_salvas
+    return total_bruto, total_empresas_salvas, total_leads_salvos
 
 def executar_backfill():
     print("=" * 60)
     print("🎯 REALIZANDO BACKFILL")
     print("=" * 60)
+
+    # carrega variaveis do env
+    load_dotenv()
 
     banco = obter_conexao()
 
@@ -147,7 +146,7 @@ def executar_backfill():
     company_repo.update(banco, companies_backfilled_data)
 
     print(
-        f"💾 Salvando {len(companies_backfilled_data)} dados atualizados..."
+        f"💾 Salvando {len(companies_backfilled_data)} dados verificados..."
     )
 
     # Adiciona somente os novos leads encontrados
@@ -162,37 +161,6 @@ def executar_backfill():
         f"{len(company_data_from_db)} empresas, "
         f"{len(lead_data_from_db) + len(leads_to_save)} leads"
     )
-
-    try:
-        sheet_pag1 = GoogleSheetsRepository(
-            spreadsheet_name="LeadFlow",
-            worksheet_name="Empresas",
-        )
-
-        sheet_pag2 = LeadGoogleSheetsRepository(
-            spreadsheet_name="LeadFlow",
-            worksheet_name="Leads",
-        )
-
-        companies_from_db = company_repo.list_all(banco)
-        leads_from_db = lead_repo.list_all(banco)
-
-        sheet_pag1.update_companies(companies_from_db)
-        sheet_pag2.update_leads(leads_from_db)
-
-        print(
-            f"💾 {len(companies_from_db)} empresas "
-            "sincronizadas na planilha do Google"
-        )
-
-        print(
-            f"💾 {len(leads_from_db)} leads "
-            "sincronizados na planilha do Google"
-        )
-
-    except Exception as e:
-        print(f"⚠️ Erro ao salvar na planilha do Google: {e}")
-        raise
 
     return len(companies_backfilled_data), len(leads_to_save)
 

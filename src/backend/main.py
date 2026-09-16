@@ -2,6 +2,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import traceback
 
+from src.backend.data_storage.database import inicializar_banco
+
 from src.backend.models.company_search import CompanySearch
 from src.backend.services.leadflow_service import (
     executar_busca,
@@ -15,13 +17,11 @@ from src.backend.services.leadflow_service import (
     excluir_empresas,
     excluir_leads,
 )
-from src.backend.data_storage.database import inicializar_banco
 
 
 inicializar_banco()
 
 app = FastAPI()
-
 
 app.add_middleware(
     CORSMiddleware,
@@ -35,7 +35,7 @@ app.add_middleware(
 @app.post("/search-companies")
 def buscar_companies(search: CompanySearch):
     try:
-        total_bruto, total_salvo = executar_busca(
+        total_bruto, total_salvo, total_leads_salvos = executar_busca(
             search.municipio,
             search.setor,
         )
@@ -46,12 +46,13 @@ def buscar_companies(search: CompanySearch):
             "setor": search.setor,
             "brutos": total_bruto,
             "salvos": total_salvo,
+            "leads": total_leads_salvos,
         }
     except Exception as e:
         print(f"⚠️ Erro ao realizar busca: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Erro ao realizar backfill: {e}"
+            detail=f"Erro ao realizar busca: {e}"
         )
 
 
