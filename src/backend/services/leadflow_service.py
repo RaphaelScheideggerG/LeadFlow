@@ -54,10 +54,10 @@ def executar_busca(municipio: str, segmento: str):
     # Salva a busca no banco de dados
     search = search_repo.save_search(banco, search)
 
+    # lista dos ids de buscas que correspondem aos parametros da busca
+    ids_list = search_repo.find_searches_ids_by_parameter(banco, municipio, segmento)
     # lista companias existentes no banco
-    # Aqui a gente chama um metodo que recebe municipio e estado e retorna as correspondencias
-    # com esses valores
-    data_from_db = company_repo.list_all(banco) 
+    data_from_db = company_repo.find_by_search_ids(banco, ids_list) 
 
     # adquire nomes existentes no banco para tentariva de exclusão na busca
     search_exclusion_list = processor.get_names(data_from_db)
@@ -67,29 +67,41 @@ def executar_busca(municipio: str, segmento: str):
         municipality=municipio,
         segment=segmento,
         api_key=SERPAPI_KEY,
-        # names_in_storage=search_exclusion_list, # FIX: Lista de exlcusão inteligente
+        names_in_storage=search_exclusion_list
     )
 
     # realiza a coleta de empresas
-    raw_results = collector.collect_companies()
+    raw_results, search_status, search_error = collector.collect_companies()
+
+    print(60*"-")
 
     if raw_results:
         print(f"✅ {len(raw_results)} empresas coletadas.")
+        print(f"Status da busca: {search_status}")
     else:
         print("⚠️ Nenhum resultado encontrado.")
+        print(f"ERROR: {search_error}")
 
     # armazena quantidade bruta de correspondências encontradas na busca
     total_bruto = len(raw_results)
 
+    # pega os nomes das companias existentes no banco para deduplicação na camada de processamento
+    companies_from_db = company_repo.list_all(banco)
+    companies_names_from_db = processor.get_names(companies_from_db)
+
     # processa os resultados da coleta, removendo duplicatas e aplicando regras de negócio
     companies = processor.process(
         raw_results,
-        nomes_existentes=search_exclusion_list,
+        nomes_existentes=companies_names_from_db,
         search_id=search.id,
     )
 
     # armazena quantidade de empresas válidas após o processamento
     total_empresas_salvas = len(companies)
+
+    print(60*"=")
+    print("LOG DE EXECUÇÃO")
+    print(60*"=")
 
     print(f"🧹 {total_empresas_salvas} empresas válidas após processamento.")
 

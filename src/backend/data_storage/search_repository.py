@@ -2,7 +2,6 @@ from src.backend.models.search import Search
 
 
 class SearchRepository:
-
     def save_search(self, banco, search: Search) -> Search:
         cursor = banco.cursor()
 
@@ -30,6 +29,7 @@ class SearchRepository:
         cursor.close()
 
         return search
+
 
     def list_all(self, banco) -> list[Search]:
 
@@ -68,6 +68,7 @@ class SearchRepository:
 
         return searches
 
+
     def update(self, banco, search: Search):
         cursor = banco.cursor()
 
@@ -92,6 +93,7 @@ class SearchRepository:
         banco.commit()
         cursor.close()
 
+
     def delete_many(self, banco, ids: list[int]) -> list[int]:
         cursor = banco.cursor()
 
@@ -106,6 +108,23 @@ class SearchRepository:
         banco.commit()
 
         return deleted_ids
+
+
+    def find_searches_ids_by_parameter(self, banco, municipio, setor) -> list[int]:
+        cursor = banco.cursor()
+
+        cursor.execute("""
+        SELECT
+            id
+        FROM searches 
+        WHERE municipio = %s
+            AND setor = %s
+        """, (municipio, setor))
+
+        rows = cursor.fetchall()
+
+        return [row[0] for row in rows]
+
 
     def find_by_id(self, banco, id: int) -> Search | None:
         ...

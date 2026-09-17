@@ -58,6 +58,7 @@ class CompanyRepository:
 
         return companies
 
+
     def list_all(self, banco) -> list[Company]:
         cursor = banco.cursor()
 
@@ -104,6 +105,7 @@ class CompanyRepository:
 
         return companies
 
+
     def update(self, banco, companies: list[Company]):
         cursor = banco.cursor()
 
@@ -141,6 +143,8 @@ class CompanyRepository:
         ])
 
         banco.commit()
+
+
     def delete_many(self, banco, ids: list[int]) -> list[int]:
         cursor = banco.cursor()
 
@@ -155,6 +159,59 @@ class CompanyRepository:
         banco.commit()
 
         return deleted_ids
+
+
+    def find_by_search_ids(
+        self,
+        banco,
+        search_ids: list[int]
+    ) -> list[Company]:
+        cursor = banco.cursor()
+
+        cursor.execute("""
+            SELECT
+                id,
+                search_id,
+                nome_empresa,
+                telefone,
+                segmento,
+                ia_score,
+                ia_justificativa,
+                site,
+                avaliacao,
+                quantidade_avaliacoes,
+                endereco,
+                latitude,
+                longitude
+            FROM companies
+            WHERE search_id = ANY(%s)
+        """, (search_ids,))
+
+        rows = cursor.fetchall()
+
+        companies = []
+
+        for row in rows:
+            companies.append(
+                Company(
+                    id=row[0],
+                    search_id=row[1],
+                    nome_empresa=row[2],
+                    telefone=row[3],
+                    segmento=row[4],
+                    ia_score=row[5],
+                    ia_justificativa=row[6],
+                    site=row[7],
+                    avaliacao=row[8],
+                    quantidade_avaliacoes=row[9],
+                    endereco=row[10],
+                    latitude=row[11],
+                    longitude=row[12]
+                )
+            )
+
+        return companies
+
 
     def find_by_id(self, id: int):
         ...

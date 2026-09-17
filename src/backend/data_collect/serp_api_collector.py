@@ -22,10 +22,10 @@ class CompanyCollector:
 
         self.client = serpapi.Client(api_key=self.api_key)
 
-    def collect_companies(self) -> list[dict]:
+    def collect_companies(self): # -> uma porrada de coisa:
         query = self._build_query()
 
-        print(f"🔍 Buscando empresas: '{query}'...")
+        print(f"🔍 Buscando empresas: '{query}'")
 
         try:
             results = self.client.search(
@@ -40,11 +40,10 @@ class CompanyCollector:
             )
     
             local_results = results.get("local_results", [])
+            search_status = results.get("search_metadata", {}).get("status")
+            search_error = results.get("error")
 
-            if not local_results:
-                return []
-
-            return local_results
+            return local_results, search_status, search_error
 
         except serpapi.HTTPError as e:
             if e.status_code == 401:
