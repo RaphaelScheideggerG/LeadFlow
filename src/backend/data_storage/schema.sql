@@ -14,7 +14,9 @@ CREATE TABLE IF NOT EXISTS searches (
 CREATE TABLE IF NOT EXISTS companies (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 
-    search_id BIGINT NOT NULL REFERENCES searches(id),
+    search_id BIGINT NOT NULL
+        REFERENCES searches(id)
+        ON DELETE CASCADE,
 
     nome_empresa TEXT UNIQUE NOT NULL,
     telefone TEXT,
@@ -27,6 +29,7 @@ CREATE TABLE IF NOT EXISTS companies (
     endereco TEXT,
     latitude REAL,
     longitude REAL,
+
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -40,7 +43,16 @@ CREATE TABLE IF NOT EXISTS leads (
     ia_score REAL NOT NULL,
     ia_justificativa TEXT,
 
-    visualizado BOOLEAN NOT NULL DEFAULT FALSE; 
+    visualizado BOOLEAN NOT NULL DEFAULT FALSE,
+
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+ALTER TABLE companies
+DROP CONSTRAINT companies_search_id_fkey;
+
+ALTER TABLE companies
+ADD CONSTRAINT companies_search_id_fkey
+FOREIGN KEY (search_id)
+REFERENCES searches(id)
+ON DELETE CASCADE;

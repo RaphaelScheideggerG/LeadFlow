@@ -13,7 +13,7 @@ export default function SearchForm({
     <>
       <TextInput
         label="Município"
-        placeholder="Ex.: Brasília"
+        placeholder="Padrão: Brasília"
         value={municipio}
         disabled={loading}
         onChange={(e) => setMunicipio(e.target.value)}
@@ -25,7 +25,7 @@ export default function SearchForm({
 
       <TextInput
         label="Setor"
-        placeholder="Ex.: Tecnologia"
+        placeholder="Padrão: Tecnologia"
         value={setor}
         disabled={loading}
         onChange={(e) => setSetor(e.target.value)}

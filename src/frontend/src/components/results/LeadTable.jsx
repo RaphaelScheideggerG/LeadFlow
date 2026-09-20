@@ -33,7 +33,6 @@ export default function LeadTable({
   setSelectedRows
 }) {
 
-  
   const [search, setSearch] = useState('');
   const [orderBy, setOrderBy] = useState('name')
   
@@ -48,35 +47,42 @@ export default function LeadTable({
   const handleViewDetails = (lead) => {
     console.log('Ver detalhes:', lead);
   };
-
+  
   const handleSearchChange = (event) => {
     const { value } = event.currentTarget;
     setSearch(value);
   }
-
+  
   const toggleRow = (id) => {
     setSelectedRows((current) =>
       current.includes(id)
-        ? current.filter((item) => item !== id)
-        : [...current, id]
-    );
-  };
+    ? current.filter((item) => item !== id)
+    : [...current, id]
+  );
+};
+
 
   const toggleAll = () => {
+      const visibleIds = filteredData.map((item) => item.id);
+      
+      const allVisibleSelected = visibleIds.every((id) =>
+        selectedRows.includes(id)
+    );
+    
     setSelectedRows((current) =>
-      current.length === data.length
-        ? []
-        : data.map((item) => item.id)
+      allVisibleSelected
+    ? current.filter((id) => !visibleIds.includes(id))
+    : [...new Set([...current, ...visibleIds])]
     );
   };
 
   const filteredData = data.filter((row) => {
     const query = search.toLowerCase().trim();
-
+    
     if (!query) {
       return true;
     }
-
+    
     return Object.values(row).some((value) =>
       String(value).toLowerCase().includes(query)
     );
@@ -86,39 +92,48 @@ export default function LeadTable({
     if (orderBy === 'name') {
       return a.nome_empresa.localeCompare(b.nome_empresa);
     }
-
+    
     if (orderBy === 'score') {
       return b.ia_score - a.ia_score;
     }
-
+    
     return 0;
   });
 
+  const visibleIds = filteredData.map((item) => item.id);
+
+  const allVisibleSelected =
+    visibleIds.length > 0 &&
+    visibleIds.every((id) => selectedRows.includes(id));
+
+  const someVisibleSelected =
+    visibleIds.some((id) => selectedRows.includes(id));
+
   const rows = orderedData.map((row) => (
     <Table.Tr
-      key={row.id}
-      bg={
-        selectedRows.includes(row.id)
+        key={row.id}
+        bg={
+          selectedRows.includes(row.id)
           ? 'var(--mantine-color-blue-light)'
           : undefined
-      }
-      style={{ cursor: 'pointer' }}
-      onClick={() => handleViewDetails(row)}
-    >
-      <Table.Td onClick={(e) => e.stopPropagation()}>
-        <Checkbox
-          aria-label="Selecionar lead"
-          checked={selectedRows.includes(row.id)}
-          onChange={() => toggleRow(row.id)}
-        />
-      </Table.Td>
+        }
+        style={{ cursor: 'pointer' }}
+        onClick={() => handleViewDetails(row)}
+      >
+        <Table.Td onClick={(e) => e.stopPropagation()}>
+          <Checkbox
+            aria-label="Selecionar lead"
+            checked={selectedRows.includes(row.id)}
+            onChange={() => toggleRow(row.id)}
+          />
+        </Table.Td>
 
-      <Table.Td>{row.nome_empresa}</Table.Td>
-      <Table.Td>{row.ia_score}</Table.Td>
-      <Table.Td>{row.ia_justificativa}</Table.Td>
-    </Table.Tr>
-  ));
-
+        <Table.Td>{row.nome_empresa}</Table.Td>
+        <Table.Td>{row.ia_score}</Table.Td>
+        <Table.Td>{row.ia_justificativa}</Table.Td>
+      </Table.Tr>
+    ));
+  
   return (
     <Stack>
       <Card
@@ -209,11 +224,8 @@ export default function LeadTable({
                     <Group justify="flex-start" gap="md" px="xs">
                       <Checkbox
                         onChange={toggleAll}
-                        checked={selectedRows.length === data.length}
-                        indeterminate={
-                          selectedRows.length > 0 &&
-                          selectedRows.length !== data.length
-                        }
+                        checked={allVisibleSelected}
+                        indeterminate={someVisibleSelected && !allVisibleSelected}
                         aria-label="Selecionar todos"
                       />
 

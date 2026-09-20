@@ -69,8 +69,8 @@ export default function SearchResults() {
         console.error('Erro ao deletar buscas:', error);
         setError(error.message);
       } finally {
-        setLoading(false); // Desativa o loading
-        setOpenedDeleteMenu(false); // Fecha o modal
+        setLoading(false);
+        setOpenedDeleteMenu(false);
       }
     };
 
@@ -98,7 +98,8 @@ export default function SearchResults() {
       <DeleteMenu
         opened={openedDeleteMenu}
         onClose={() => setOpenedDeleteMenu(false)}
-        onConfirm={handleDelete} // <--- Chama a função de delete direto aqui!
+        onConfirm={handleDelete}
+        message="Tem certeza que deseja deletar esta busca? Esta ação é irreversível. As empresas e Leads associados a esta busca também serão excluídos."
       />
 
       <SearchTable
@@ -106,7 +107,7 @@ export default function SearchResults() {
         loading={loading}
         setOpenedDeleteMenu={setOpenedDeleteMenu}
         selectedRows={selectedRows}
-        setSelectedRows={setSelectedRows} // <--- Passa a referência da função, sem invocar!
+        setSelectedRows={setSelectedRows}
       />
     </Stack>
   );

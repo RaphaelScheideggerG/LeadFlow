@@ -53,10 +53,16 @@ export default function SearchTable({data, loading, setOpenedDeleteMenu, selecte
   };
 
   const toggleAll = () => {
+      const visibleIds = filteredData.map((item) => item.id);
+      
+      const allVisibleSelected = visibleIds.every((id) =>
+        selectedRows.includes(id)
+    );
+    
     setSelectedRows((current) =>
-      current.length === data.length
-        ? []
-        : data.map((item) => item.id)
+      allVisibleSelected
+    ? current.filter((id) => !visibleIds.includes(id))
+    : [...new Set([...current, ...visibleIds])]
     );
   };
 
@@ -99,6 +105,15 @@ export default function SearchTable({data, loading, setOpenedDeleteMenu, selecte
 
     return 0;
   });
+
+  const visibleIds = filteredData.map((item) => item.id);
+
+  const allVisibleSelected =
+    visibleIds.length > 0 &&
+    visibleIds.every((id) => selectedRows.includes(id));
+
+  const someVisibleSelected =
+    visibleIds.some((id) => selectedRows.includes(id));
 
   const rows = orderedData.map((row) => (
     <Table.Tr
@@ -312,12 +327,9 @@ export default function SearchTable({data, loading, setOpenedDeleteMenu, selecte
                     <Group justify="flex-start" gap="md" px="xs">
                       <Checkbox
                         onChange={toggleAll}
-                        checked={selectedRows.length === data.length}
-                        indeterminate={
-                          selectedRows.length > 0 &&
-                          selectedRows.length !== data.length
-                        }
-                        aria-label="Select all rows"
+                        checked={allVisibleSelected}
+                        indeterminate={someVisibleSelected && !allVisibleSelected}
+                        aria-label="Selecionar todos"
                       />
 
                       <ActionIcon

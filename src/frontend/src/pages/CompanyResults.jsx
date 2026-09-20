@@ -118,6 +118,7 @@ export default function CompanyResults() {
         opened={openedDeleteMenu}
         onClose={() => setOpenedDeleteMenu(false)}
         onConfirm={handleDelete}
+        message="Tem certeza que deseja deletar esta empresa? Esta ação é irreversível e os dados serão removidos do banco de dados. Esta ação também exclui o Lead associado a empresa."
       />
 
       <CompanyTable
