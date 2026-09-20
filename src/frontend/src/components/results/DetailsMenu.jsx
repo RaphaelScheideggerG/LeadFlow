@@ -1,6 +1,11 @@
-import { Modal, Button, Group, Text } from '@mantine/core';
+import {
+  List,
+  Group,
+  Text,
+} from '@mantine/core';
 
-export function DeleteMenu({ opened, onClose, onConfirm}) {
+
+export default function DetailsMenu(opened, onClose, result, onConfirm){
     return (
     <Modal 
         opened={opened} 
@@ -8,15 +13,16 @@ export function DeleteMenu({ opened, onClose, onConfirm}) {
         title="Confirmar Exclusão" 
         centered
     >
-        <Text size="sm" mb="lg">
-        Tem certeza que deseja deletar este registro? 
-        Esta ação é irreversível e os dados serão removidos do banco de dados
-        Esta ação também excluirá o Lead associado a esta empresa
-        </Text>
+        <List>
+            <List.Item>ID: </List.Item>
+            <List.Item>ID: </List.Item>
+            <List.Item>ID: </List.Item>
+
+        </List>
 
         <Group position="right" mt="md">
             <Button variant="outline" color="gray" onClick={onClose}>
-                Cancelar
+                Voltar
             </Button>
             <Button color="red" onClick={() => onConfirm()
                 

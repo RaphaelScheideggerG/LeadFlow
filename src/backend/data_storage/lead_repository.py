@@ -35,6 +35,7 @@ class LeadRepository:
                 ia_score,
                 ia_justificativa
             FROM leads
+            ORDER BY ia_score DESC, id DESC
         """)
 
         rows = cursor.fetchall()
@@ -89,6 +90,7 @@ class LeadRepository:
             FROM leads
             JOIN companies
                 ON leads.company_id = companies.id
+            ORDER BY ia_score DESC, id DESC
         """)
 
         rows = cursor.fetchall()

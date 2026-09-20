@@ -35,8 +35,8 @@ export default function SideMenu({ opened, onClose }) {
         <NavLink
           label="Resultados"
           leftSection={<IconTable size={20} stroke={1.5} />}
-          childrenOffset={28} // Dá o recuo visual agradável para os subitens
-          defaultOpened // Deixa aberto por padrão se você quiser, ou pode tirar
+          childrenOffset={28}
+          defaultOpened
         >
           <NavLink
             component={Link}

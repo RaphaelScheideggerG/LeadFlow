@@ -8,6 +8,7 @@ import {
   Card,
   Notification,
 } from '@mantine/core';
+
 import { useDisclosure } from '@mantine/hooks';
 import { IconMenu2 } from '@tabler/icons-react';
 
@@ -113,26 +114,19 @@ export default function LeadResults() {
         </Notification>
       )}
 
-      <Card
-        shadow="sm"
-        padding="lg"
-        radius="lg"
-        withBorder
-      >
-        <DeleteMenu
-          opened={openedDeleteMenu}
-          onClose={() => setOpenedDeleteMenu(false)}
-          onConfirm={handleDelete}
-        />
+      <DeleteMenu
+        opened={openedDeleteMenu}
+        onClose={() => setOpenedDeleteMenu(false)}
+        onConfirm={handleDelete}
+      />
 
-        <LeadTable
-          data={data}
-          loading={loading}
-          setOpenedDeleteMenu={setOpenedDeleteMenu}
-          selectedRows={selectedRows}
-          setSelectedRows={setSelectedRows}
-        />
-      </Card>
+      <LeadTable
+        data={data}
+        loading={loading}
+        setOpenedDeleteMenu={setOpenedDeleteMenu}
+        selectedRows={selectedRows}
+        setSelectedRows={setSelectedRows}
+      />
     </Stack>
   );
 }

@@ -114,26 +114,19 @@ export default function CompanyResults() {
         </Notification>
       )}
 
-      <Card
-        shadow="sm"
-        padding="lg"
-        radius="lg"
-        withBorder
-      >
-        <DeleteMenu
-          opened={openedDeleteMenu}
-          onClose={() => setOpenedDeleteMenu(false)}
-          onConfirm={handleDelete}
-        />
+      <DeleteMenu
+        opened={openedDeleteMenu}
+        onClose={() => setOpenedDeleteMenu(false)}
+        onConfirm={handleDelete}
+      />
 
-        <CompanyTable
-          data={data}
-          loading={loading}
-          setOpenedDeleteMenu={setOpenedDeleteMenu}
-          selectedRows={selectedRows}
-          setSelectedRows={setSelectedRows}
-        />
-      </Card>
+      <CompanyTable
+        data={data}
+        loading={loading}
+        setOpenedDeleteMenu={setOpenedDeleteMenu}
+        selectedRows={selectedRows}
+        setSelectedRows={setSelectedRows}
+      />
     </Stack>
   );
 }

@@ -213,5 +213,26 @@ class CompanyRepository:
         return companies
 
 
-    def find_by_id(self, id: int):
-        ...
+    def find_by_id(self, banco, id: int):
+        cursor = banco.cursor()
+
+        cursor.execute("""
+            SELECT
+                id,
+                search_id,
+                nome_empresa,
+                telefone,
+                segmento,
+                ia_score,
+                ia_justificativa,
+                site,
+                avaliacao,
+                quantidade_avaliacoes,
+                endereco,
+                latitude,
+                longitude
+            FROM companies
+            WHERE search_id = %s
+        """, id)
+
+        company_details = cursor.fetchall()
