@@ -114,26 +114,20 @@ export default function CompanyResults() {
         </Notification>
       )}
 
-      <Card
-        shadow="sm"
-        padding="lg"
-        radius="lg"
-        withBorder
-      >
-        <DeleteMenu
-          opened={openedDeleteMenu}
-          onClose={() => setOpenedDeleteMenu(false)}
-          onConfirm={handleDelete}
-        />
+      <DeleteMenu
+        opened={openedDeleteMenu}
+        onClose={() => setOpenedDeleteMenu(false)}
+        onConfirm={handleDelete}
+        message="Tem certeza que deseja deletar esta empresa? Esta ação é irreversível e os dados serão removidos do banco de dados. Esta ação também exclui o Lead associado a empresa."
+      />
 
-        <CompanyTable
-          data={data}
-          loading={loading}
-          setOpenedDeleteMenu={setOpenedDeleteMenu}
-          selectedRows={selectedRows}
-          setSelectedRows={setSelectedRows}
-        />
-      </Card>
+      <CompanyTable
+        data={data}
+        loading={loading}
+        setOpenedDeleteMenu={setOpenedDeleteMenu}
+        selectedRows={selectedRows}
+        setSelectedRows={setSelectedRows}
+      />
     </Stack>
   );
 }

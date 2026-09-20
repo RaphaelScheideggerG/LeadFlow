@@ -1,27 +1,26 @@
 import { Modal, Button, Group, Text } from '@mantine/core';
 
-export function DeleteMenu({ opened, onClose, onConfirm}) {
-    return (
-    <Modal 
-        opened={opened} 
-        onClose={onClose} 
-        title="Confirmar Exclusão" 
-        centered
+export function DeleteMenu({ opened, onClose, onConfirm, message }) {
+  return (
+    <Modal
+      opened={opened}
+      onClose={onClose}
+      title="Confirmar Exclusão"
+      centered
     >
-        <Text size="sm" mb="lg">
-        Tem certeza que deseja deletar este registro? Esta ação é irreversível e os dados serão removidos do banco de dados
-        </Text>
+      <Text size="sm" mb="lg">
+        {message}
+      </Text>
 
-        <Group position="right" mt="md">
+      <Group justify="flex-end" mt="md">
         <Button variant="outline" color="gray" onClick={onClose}>
-            Cancelar
+          Cancelar
         </Button>
-        <Button color="red" onClick={() => onConfirm()
-            
-        }>
-            Deletar permanentemente
+
+        <Button color="red" onClick={onConfirm}>
+          Deletar permanentemente
         </Button>
-        </Group>
+      </Group>
     </Modal>
-    );
+  );
 }

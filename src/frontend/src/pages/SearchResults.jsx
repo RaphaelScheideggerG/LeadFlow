@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Title, Text, Stack, ActionIcon, Group, Card, Notification} from '@mantine/core';
+import { 
+  Title, 
+  Text, 
+  Stack, 
+  ActionIcon, 
+  Group, 
+  Notification
+} from '@mantine/core';
+
 import { useDisclosure } from '@mantine/hooks';
 import { IconMenu2 } from '@tabler/icons-react';
 
@@ -61,8 +69,8 @@ export default function SearchResults() {
         console.error('Erro ao deletar buscas:', error);
         setError(error.message);
       } finally {
-        setLoading(false); // Desativa o loading
-        setOpenedDeleteMenu(false); // Fecha o modal
+        setLoading(false);
+        setOpenedDeleteMenu(false);
       }
     };
 
@@ -87,21 +95,20 @@ export default function SearchResults() {
         </Notification>
       )}
 
-      <Card shadow="sm" padding="lg" radius="lg" withBorder>
-        <DeleteMenu
-          opened={openedDeleteMenu}
-          onClose={() => setOpenedDeleteMenu(false)}
-          onConfirm={handleDelete} // <--- Chama a função de delete direto aqui!
-        />
+      <DeleteMenu
+        opened={openedDeleteMenu}
+        onClose={() => setOpenedDeleteMenu(false)}
+        onConfirm={handleDelete}
+        message="Tem certeza que deseja deletar esta busca? Esta ação é irreversível. As empresas e Leads associados a esta busca também serão excluídos."
+      />
 
-        <SearchTable
-          data={data}
-          loading={loading}
-          setOpenedDeleteMenu={setOpenedDeleteMenu}
-          selectedRows={selectedRows}
-          setSelectedRows={setSelectedRows} // <--- Passa a referência da função, sem invocar!
-        />
-      </Card>
+      <SearchTable
+        data={data}
+        loading={loading}
+        setOpenedDeleteMenu={setOpenedDeleteMenu}
+        selectedRows={selectedRows}
+        setSelectedRows={setSelectedRows}
+      />
     </Stack>
   );
 }
