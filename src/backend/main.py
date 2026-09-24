@@ -5,6 +5,8 @@ import traceback
 from src.backend.data_storage.database import inicializar_banco
 
 from src.backend.models.company_search import CompanySearch
+from src.backend.models.search_details import SearchDetails
+
 from src.backend.services.leadflow_service import (
     executar_busca,
     executar_backfill,
@@ -16,6 +18,8 @@ from src.backend.services.leadflow_service import (
     excluir_buscas,
     excluir_empresas,
     excluir_leads,
+
+    buscas_detalhes,
 )
 
 
@@ -150,4 +154,18 @@ def deletar_leads(ids: list[int]):
         raise HTTPException(
             status_code=500,
             detail=f"Erro ao deletar leads: {e}"
+        )
+
+
+@app.post("/searches-details")
+def detalhes_busca(details: SearchDetails):
+    try:
+        detailed_searches = buscas_detalhes(details.ids)
+        return detailed_searches
+    except Exception as e:
+        print(f"⚠️ Erro ao buscar detalhes: {e}")
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao listar buscas: {e}"
         )

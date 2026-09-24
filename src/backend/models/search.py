@@ -9,6 +9,7 @@ class Search(BaseModel):
     total_correspondencias: int | None = 0
     total_empresas: int | None = 0
     total_leads: int | None = 0
+    search_status: str | None = None
     timestamp: datetime | None = None
 
 class SearchResponse(BaseModel):
