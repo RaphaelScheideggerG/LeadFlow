@@ -13,11 +13,12 @@ import {
   Menu,
 } from '@mantine/core';
 
-import {
-  IconTrash,
+import { 
+  IconTrash, 
   IconSearch,
-  IconX,
-  IconCheck,
+  IconX, 
+  IconLoader,
+  IconCheck, 
   IconFilter,
   IconSortAscending,
   IconSortDescending,
@@ -26,26 +27,27 @@ import {
 import { useState } from 'react';
 
 
-export default function CompanyTable({
+export default function SearchTable({
   data,
-  loading,
-  setOpenedDeleteMenu,
-  selectedRows,
-  setSelectedRows
+  loading, 
+  setOpenedDeleteMenu, 
+  selectedRows, 
+  setSelectedRows, 
+  setSearchesIDsToViewDetails
 }) {
   const [search, setSearch] = useState('');
-  const [orderBy, setOrderBy] = useState('name');
-
-  if (loading) {
-    return (
-      <Center h="50vh">
-        <Loader size="lg" />
-      </Center>
-    );
-  }
-
-  const handleViewDetails = (company) => {
-    console.log('Ver detalhes:', company);
+  const [orderBy, setOrderBy] = useState('data');  
+  
+    if (loading) {
+      return (
+        <Center h="50vh">
+          <Loader size="lg" />
+        </Center>
+      );
+    }
+  
+  const handleViewDetails = (search) => {
+    setSearchesIDsToViewDetails([search.id]);
   };
 
   const handleSearchChange = (event) => {
@@ -88,24 +90,28 @@ export default function CompanyTable({
   });
 
   const orderedData = [...filteredData].sort((a, b) => {
-    if (orderBy === 'name') {
-      return a.nome_empresa.localeCompare(b.nome_empresa);
+    if (orderBy === 'municipio') {
+      return a.municipio.localeCompare(b.municipio);
     }
 
-    if (orderBy === 'segment') {
-      return a.segmento.localeCompare(b.segmento);
+    if (orderBy === 'setor') {
+      return a.setor.localeCompare(b.setor);
     }
 
-    if (orderBy === 'score') {
-      return b.ia_score - a.ia_score;
+    if (orderBy === 'correspondencias') {
+      return b.total_correspondencias - a.total_correspondencias;
     }
 
-    if (orderBy === 'rating') {
-      return b.avaliacao - a.avaliacao;
+    if (orderBy === 'empresas') {
+      return b.total_empresas - a.total_empresas;
     }
 
-    if (orderBy === 'reviews') {
-      return b.quantidade_avaliacoes - a.quantidade_avaliacoes;
+    if (orderBy === 'leads') {
+      return b.total_leads - a.total_leads;
+    }
+
+    if (orderBy === 'data') {
+      return new Date(b.timestamp) - new Date(a.timestamp);
     }
 
     return 0;
@@ -133,34 +139,28 @@ export default function CompanyTable({
     >
       <Table.Td onClick={(e) => e.stopPropagation()}>
         <Checkbox
-          aria-label="Selecionar empresa"
+          aria-label="Select row"
           checked={selectedRows.includes(row.id)}
           onChange={() => toggleRow(row.id)}
         />
       </Table.Td>
 
-      <Table.Td>{row.nome_empresa}</Table.Td>
-      <Table.Td>{row.telefone}</Table.Td>
-      <Table.Td>{row.segmento}</Table.Td>
-      <Table.Td>{row.ia_score}</Table.Td>
+      <Table.Td>{row.municipio}</Table.Td>
+      <Table.Td>{row.setor}</Table.Td>
+      <Table.Td>{row.total_correspondencias}</Table.Td>
+      <Table.Td>{row.total_empresas}</Table.Td>
+      <Table.Td>{row.total_leads}</Table.Td>
       <Table.Td>
-        {row.site ? (
-          <IconCheck
-            size={18}
-            stroke={1.5}
-            color="gray"
-          />
-        ) : (
-          <IconX
-            size={18}
-            stroke={1.5}
-            color="gray"
-          />
-        )}
+        {row.search_status === "Success" && <IconCheck />}
+        {row.search_status === "Error" && <IconX />}
+        {row.search_status === "Processing" && <IconLoader />}
       </Table.Td>
-      <Table.Td>{row.avaliacao}</Table.Td>
-      <Table.Td>{row.quantidade_avaliacoes}</Table.Td>
-      <Table.Td>{row.endereco}</Table.Td>
+      <Table.Td>
+        {new Date(row.timestamp).toLocaleString('pt-BR', {
+          dateStyle: 'short',
+          timeStyle: 'short',
+        })}
+      </Table.Td>
     </Table.Tr>
   ));
 
@@ -172,15 +172,15 @@ export default function CompanyTable({
         radius="lg"
         withBorder
       >
-        <Group justify="space-between" gap="md" px="xs">
+        <Group justify="space-between" gap="md" px="xs" mb="md">
           <TextInput
             placeholder="Pesquisar em qualquer campo"
             flex={1}
             mb="md"
             leftSection={
-              <IconSearch
-                size={16}
-                stroke={1.5}
+              <IconSearch 
+                size={16} 
+                stroke={1.5} 
               />
             }
             value={search}
@@ -199,15 +199,9 @@ export default function CompanyTable({
                 color={orderBy ? "blue" : "gray"}
                 size="lg"
                 title="Opções de ordenação"
-                styles={{
-                  root: {
-                    '&:focusVisible?': {
-                      outline: 'none'
-                    }
-                  }
-                }}
+                styles={{ root: { '&:focusVisible?': { outline: 'none' } } }}
               >
-                <IconFilter size={20} stroke={1.5}/>
+                <IconFilter size={20} stroke={1.5} />
               </ActionIcon>
             </Menu.Target>
 
@@ -215,128 +209,111 @@ export default function CompanyTable({
               <Menu.Label>Ordenar por</Menu.Label>
 
               <Menu.Item
-                leftSection={
-                  <IconSortAscending size={14} />
-                }
-                onClick={() => setOrderBy('name')}
+                leftSection={<IconSortAscending size={14} />}
+                onClick={() => setOrderBy('municipio')}
                 rightSection={
-                  orderBy === 'name'
-                    ? (
-                      <IconCheck
-                        size={14}
-                        color="var(--mantine-color-blue-filled)"
-                      />
-                    )
+                  orderBy === 'municipio'
+                    ? <IconCheck size={14} color="var(--mantine-color-blue-filled)" />
                     : null
                 }
-                fw={orderBy === 'name' ? 600 : 400}
+                fw={orderBy === 'municipio' ? 600 : 400}
                 bg={
-                  orderBy === 'name'
+                  orderBy === 'municipio'
                     ? 'var(--mantine-color-blue-light)'
                     : undefined
                 }
               >
-                Nome (A-Z)
+                Município (A-Z)
               </Menu.Item>
 
               <Menu.Item
-                leftSection={
-                  <IconSortAscending size={14} />
-                }
-                onClick={() => setOrderBy('segment')}
+                leftSection={<IconSortAscending size={14} />}
+                onClick={() => setOrderBy('setor')}
                 rightSection={
-                  orderBy === 'segment'
-                    ? (
-                      <IconCheck
-                        size={14}
-                        color="var(--mantine-color-blue-filled)"
-                      />
-                    )
+                  orderBy === 'setor'
+                    ? <IconCheck size={14} color="var(--mantine-color-blue-filled)" />
                     : null
                 }
-                fw={orderBy === 'segment' ? 600 : 400}
+                fw={orderBy === 'setor' ? 600 : 400}
                 bg={
-                  orderBy === 'segment'
+                  orderBy === 'setor'
                     ? 'var(--mantine-color-blue-light)'
                     : undefined
                 }
               >
-                Segmento (A-Z)
+                Setor (A-Z)
               </Menu.Item>
 
               <Menu.Item
-                leftSection={
-                  <IconSortDescending size={14} />
-                }
-                onClick={() => setOrderBy('score')}
+                leftSection={<IconSortDescending size={14} />}
+                onClick={() => setOrderBy('correspondencias')}
                 rightSection={
-                  orderBy === 'score'
-                    ? (
-                      <IconCheck
-                        size={14}
-                        color="var(--mantine-color-blue-filled)"
-                      />
-                    )
+                  orderBy === 'correspondencias'
+                    ? <IconCheck size={14} color="var(--mantine-color-blue-filled)" />
                     : null
                 }
-                fw={orderBy === 'score' ? 600 : 400}
+                fw={orderBy === 'correspondencias' ? 600 : 400}
                 bg={
-                  orderBy === 'score'
+                  orderBy === 'correspondencias'
                     ? 'var(--mantine-color-blue-light)'
                     : undefined
                 }
               >
-                Score (maior)
+                Correspondências (maior)
               </Menu.Item>
 
               <Menu.Item
-                leftSection={
-                  <IconSortDescending size={14} />
-                }
-                onClick={() => setOrderBy('rating')}
+                leftSection={<IconSortDescending size={14} />}
+                onClick={() => setOrderBy('empresas')}
                 rightSection={
-                  orderBy === 'rating'
-                    ? (
-                      <IconCheck
-                        size={14}
-                        color="var(--mantine-color-blue-filled)"
-                      />
-                    )
+                  orderBy === 'empresas'
+                    ? <IconCheck size={14} color="var(--mantine-color-blue-filled)" />
                     : null
                 }
-                fw={orderBy === 'rating' ? 600 : 400}
+                fw={orderBy === 'empresas' ? 600 : 400}
                 bg={
-                  orderBy === 'rating'
+                  orderBy === 'empresas'
                     ? 'var(--mantine-color-blue-light)'
                     : undefined
                 }
               >
-                Avaliação (maior)
+                Empresas (maior)
               </Menu.Item>
 
               <Menu.Item
-                leftSection={
-                  <IconSortDescending size={14} />
-                }
-                onClick={() => setOrderBy('reviews')}
+                leftSection={<IconSortDescending size={14} />}
+                onClick={() => setOrderBy('leads')}
                 rightSection={
-                  orderBy === 'reviews'
-                    ? (
-                      <IconCheck
-                        size={14}
-                        color="var(--mantine-color-blue-filled)"
-                      />
-                    )
+                  orderBy === 'leads'
+                    ? <IconCheck size={14} color="var(--mantine-color-blue-filled)" />
                     : null
                 }
-                fw={orderBy === 'reviews' ? 600 : 400}
+                fw={orderBy === 'leads' ? 600 : 400}
                 bg={
-                  orderBy === 'reviews'
+                  orderBy === 'leads'
                     ? 'var(--mantine-color-blue-light)'
                     : undefined
                 }
               >
-                Avaliações (maior)
+                Leads (maior)
+              </Menu.Item>
+
+              <Menu.Item
+                leftSection={<IconSortDescending size={14} />}
+                onClick={() => setOrderBy('data')}
+                rightSection={
+                  orderBy === 'data'
+                    ? <IconCheck size={14} color="var(--mantine-color-blue-filled)" />
+                    : null
+                }
+                fw={orderBy === 'data' ? 600 : 400}
+                bg={
+                  orderBy === 'data'
+                    ? 'var(--mantine-color-blue-light)'
+                    : undefined
+                }
+              >
+                Data (mais recente)
               </Menu.Item>
 
               <Menu.Divider />
@@ -357,14 +334,14 @@ export default function CompanyTable({
           h="75vh"
           offsetScrollbars
         >
-          <Table miw={1300} highlightOnHover stickyHeader>
+          <Table miw={1100} highlightOnHover stickyHeader>
             <Table.Thead>
               <Table.Tr>
                 {selectedRows.length > 0 ? (
                   <Table.Th
-                    colSpan={10}
+                    colSpan={8}
                     style={{
-                      backgroundColor:'var(--mantine-color-blue-light)',
+                      backgroundColor: 'var(--mantine-color-blue-light)',
                     }}
                   >
                     <Group justify="flex-start" gap="md" px="xs">
@@ -372,16 +349,14 @@ export default function CompanyTable({
                         onChange={toggleAll}
                         checked={allVisibleSelected}
                         indeterminate={someVisibleSelected && !allVisibleSelected}
-                        aria-label="Selecionar todas"
+                        aria-label="Selecionar todos"
                       />
 
                       <ActionIcon
                         variant="filled"
                         color="red"
                         size="sm"
-                        onClick={() =>
-                          setOpenedDeleteMenu(true)
-                        }
+                        onClick={() => setOpenedDeleteMenu(true)}
                         title="Excluir selecionados"
                       >
                         <IconTrash size={16} />
@@ -397,26 +372,22 @@ export default function CompanyTable({
                     <Table.Th style={{ width: 40 }}>
                       <Checkbox
                         onChange={toggleAll}
-                        checked={
-                          data.length > 0 &&
-                          selectedRows.length === data.length
-                        }
+                        checked={selectedRows.length === data.length}
                         indeterminate={
                           selectedRows.length > 0 &&
                           selectedRows.length !== data.length
                         }
-                        aria-label="Selecionar todas"
+                        aria-label="Select all rows"
                       />
                     </Table.Th>
 
-                    <Table.Th>Empresa</Table.Th>
-                    <Table.Th>Telefone</Table.Th>
-                    <Table.Th>Segmento</Table.Th>
-                    <Table.Th>Score</Table.Th>
-                    <Table.Th>Website</Table.Th>
-                    <Table.Th>Avaliação</Table.Th>
-                    <Table.Th>Avaliações</Table.Th>
-                    <Table.Th>Endereço</Table.Th>
+                    <Table.Th>Município</Table.Th>
+                    <Table.Th>Setor</Table.Th>
+                    <Table.Th>Correspondências</Table.Th>
+                    <Table.Th>Empresas</Table.Th>
+                    <Table.Th>Leads</Table.Th>
+                    <Table.Th>Status</Table.Th>
+                    <Table.Th>Data</Table.Th>
                   </>
                 )}
               </Table.Tr>

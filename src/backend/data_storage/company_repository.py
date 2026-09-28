@@ -213,7 +213,7 @@ class CompanyRepository:
         return companies
 
 
-    def find_by_id(self, banco, id: int):
+    def find_by_ids(self, banco, ids: list[int]) -> list[Company]:
         cursor = banco.cursor()
 
         cursor.execute("""
@@ -230,9 +230,37 @@ class CompanyRepository:
                 quantidade_avaliacoes,
                 endereco,
                 latitude,
-                longitude
+                longitude,
+                timestamp
             FROM companies
-            WHERE search_id = %s
-        """, id)
+            WHERE id = ANY(%s)
+            ORDER BY id
+        """, (ids,))
 
-        company_details = cursor.fetchall()
+        rows = cursor.fetchall()
+
+        companies = []
+
+        for row in rows:
+            company = Company(
+                id=row[0],
+                search_id=row[1],
+                nome_empresa=row[2],
+                telefone=row[3],
+                segmento=row[4],
+                ia_score=row[5],
+                ia_justificativa=row[6],
+                site=row[7],
+                avaliacao=row[8],
+                quantidade_avaliacoes=row[9],
+                endereco=row[10],
+                latitude=row[11],
+                longitude=row[12],
+                timestamp=row[13],
+            )
+
+            companies.append(company)
+
+        cursor.close()
+
+        return companies

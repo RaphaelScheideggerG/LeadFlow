@@ -5,7 +5,10 @@ import traceback
 from src.backend.data_storage.database import inicializar_banco
 
 from src.backend.models.company_search import CompanySearch
+
 from src.backend.models.search_details import SearchDetails
+from src.backend.models.company_details import CompanyDetails
+from src.backend.models.leads_to_companies import LeadsToCompanies
 
 from src.backend.services.leadflow_service import (
     executar_busca,
@@ -20,6 +23,8 @@ from src.backend.services.leadflow_service import (
     excluir_leads,
 
     buscas_detalhes,
+    empresas_detalhes,
+    empresas_de_leads,
 )
 
 
@@ -168,4 +173,31 @@ def detalhes_busca(details: SearchDetails):
         raise HTTPException(
             status_code=500,
             detail=f"Erro ao listar buscas: {e}"
+        )
+
+@app.post("/companies-details")
+def detalhes_empresas(details: CompanyDetails):
+    try:
+        detailed_companies = empresas_detalhes(details.ids)
+        return detailed_companies
+
+    except Exception as e:
+        print(f"⚠️ Erro ao buscar detalhes das empresas: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao listar empresas: {e}"
+        )
+
+@app.post("/companies-from-leads")
+def detalhes_da_empresas_de_leads(data: LeadsToCompanies):
+    try:
+        companies = empresas_de_leads(data.ids)
+        return companies
+
+    except Exception as e:
+        print(f"⚠️ Erro ao buscar empresas dos leads: {e}")
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao buscar empresas dos leads: {e}"
         )

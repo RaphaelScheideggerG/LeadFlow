@@ -11,11 +11,11 @@ import {
 import { useDisclosure } from '@mantine/hooks';
 import { IconMenu2 } from '@tabler/icons-react';
 
-import SearchTable from '../components/results/SearchTable';
+import SearchTable from '../components/results/tables/SearchTable';
 import SideMenu from '../components/SideMenu';
 import { DeleteMenu } from '../components/results/DeleteMenu';
 
-import SearchDetailsMenu from '../components/results/SearchDetailsMenu'
+import SearchDetailsMenu from '../components/results/details/SearchDetailsMenu'
 
 export default function SearchResults() {
   const [opened, { open, close }] = useDisclosure(false);
@@ -31,10 +31,7 @@ export default function SearchResults() {
   const [searchesIDsToViewDetails, setSearchesIDsToViewDetails] = useState([]);
   const [searchesDetails, setSearchesDetails] = useState([]);
 
-  useEffect(() => {
-      carregarBuscas();
-    }, []);
-
+  
   const carregarBuscas = async () => {
     try {
       const response = await fetch('http://localhost:8000/searches');
@@ -51,10 +48,10 @@ export default function SearchResults() {
       setLoading(false);
     }
   };
-
+  
   const handleShowDetails = async () => {
     setLoading(true);
-
+    
     try {
       const response = await fetch(
         'http://localhost:8000/searches-details',
@@ -68,99 +65,65 @@ export default function SearchResults() {
           }),
         }
       );
-
+      
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.detail);
       }
-
+      
       const detailedSearches = await response.json();
-
+      
       setSearchesDetails(detailedSearches)
-
+      setOpenedDetailsMenu(true);
+      
     } catch (error) {
       console.error('Erro ao mostrar detalhes:', error);
       setError(error.message);
     } finally {
       setLoading(false);
-      setOpenedDetailsMenu(true);
+    }
+  };
+  
+  const handleDelete = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:8000/delete-searches', {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(selectedRows),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail);
+      }
+      
+      await carregarBuscas();
+      setSelectedRows([]); 
+      
+    } catch (error) {
+      console.error('Erro ao deletar buscas:', error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
+      setOpenedDeleteMenu(false);
     }
   };
 
-  const handleDelete = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch('http://localhost:8000/delete-searches', {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(selectedRows),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.detail);
-        }
-
-        await carregarBuscas();
-        setSelectedRows([]); 
-
-      } catch (error) {
-        console.error('Erro ao deletar buscas:', error);
-        setError(error.message);
-      } finally {
-        setLoading(false);
-        setOpenedDeleteMenu(false);
-      }
-    };
-
-
+  useEffect(() => {
+      carregarBuscas();
+    }, []);
+  
   useEffect(() => {
     if (searchesIDsToViewDetails.length === 0) {
       return;
     }
-
-    const carregarDetalhes = async () => {
-      setLoading(true);
-
-      try {
-        const response = await fetch(
-          'http://localhost:8000/searches-details',
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              ids: searchesIDsToViewDetails,
-            }),
-          }
-        );
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.detail);
-        }
-
-        const detailedSearches = await response.json();
-
-        setSearchesDetails(detailedSearches);
-        setOpenedDetailsMenu(true);
-
-      } catch (error) {
-        console.error('Erro ao mostrar detalhes:', error);
-        setError(error.message);
-
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    carregarDetalhes();
-
+    
+    handleShowDetails()
   }, [searchesIDsToViewDetails]);
-
+  
   return (
     <Stack gap="lg" p="md">
       <SideMenu opened={opened} onClose={close} />

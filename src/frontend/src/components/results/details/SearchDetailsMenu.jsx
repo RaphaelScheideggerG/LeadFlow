@@ -87,14 +87,7 @@ export default function SearchDetailsModal({
 
                 <Divider />
 
-                <Group justify="flex-end">
-                    <Button
-                        variant="default"
-                        onClick={onClose}
-                    >
-                        Fechar
-                    </Button>
-
+                <Group justify="center">
                     <Button
                         onClick={() => onConfirmViewCompanies(search.id)}
                     >

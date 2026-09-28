@@ -3,22 +3,22 @@ import {
   Table,
   ActionIcon,
   Group,
+  Card,
   Checkbox,
   Text,
+  TextInput,
   Loader,
   Center,
-  Card,
-  Menu,
   Stack,
-  TextInput,
+  Menu,
 } from '@mantine/core';
 
-import { 
-  IconTrash, 
+import {
+  IconTrash,
   IconSearch,
-  IconCheck, 
-  IconX, 
+  IconX,
   IconLoader,
+  IconCheck,
   IconFilter,
   IconSortAscending,
   IconSortDescending,
@@ -27,20 +27,32 @@ import {
 import { useState } from 'react';
 
 
-export default function SearchTable({data, loading, setOpenedDeleteMenu, selectedRows, setSelectedRows, setSearchesIDsToViewDetails}) {
+export default function CompanyTable({
+  data,
+  loading,
+  setOpenedDeleteMenu,
+  selectedRows,
+  setSelectedRows,
+  setCompaniesIDsToViewDetails
+}) {
   const [search, setSearch] = useState('');
-  const [orderBy, setOrderBy] = useState('data');  
-  
-    if (loading) {
-      return (
-        <Center h="50vh">
-          <Loader size="lg" />
-        </Center>
-      );
-    }
-  
-  const handleViewDetails = (search) => {
-    setSearchesIDsToViewDetails([search.id]);
+  const [orderBy, setOrderBy] = useState('name');
+
+  if (loading) {
+    return (
+      <Center h="50vh">
+        <Loader size="lg" />
+      </Center>
+    );
+  }
+
+  const handleViewDetails = (company) => {
+    setCompaniesIDsToViewDetails([company.id]);
+  };
+
+  const handleSearchChange = (event) => {
+    const { value } = event.currentTarget;
+    setSearch(value);
   };
 
   const toggleRow = (id) => {
@@ -78,28 +90,24 @@ export default function SearchTable({data, loading, setOpenedDeleteMenu, selecte
   });
 
   const orderedData = [...filteredData].sort((a, b) => {
-    if (orderBy === 'municipio') {
-      return a.municipio.localeCompare(b.municipio);
+    if (orderBy === 'name') {
+      return a.nome_empresa.localeCompare(b.nome_empresa);
     }
 
-    if (orderBy === 'setor') {
-      return a.setor.localeCompare(b.setor);
+    if (orderBy === 'segment') {
+      return a.segmento.localeCompare(b.segmento);
     }
 
-    if (orderBy === 'correspondencias') {
-      return b.total_correspondencias - a.total_correspondencias;
+    if (orderBy === 'score') {
+      return b.ia_score - a.ia_score;
     }
 
-    if (orderBy === 'empresas') {
-      return b.total_empresas - a.total_empresas;
+    if (orderBy === 'rating') {
+      return b.avaliacao - a.avaliacao;
     }
 
-    if (orderBy === 'leads') {
-      return b.total_leads - a.total_leads;
-    }
-
-    if (orderBy === 'data') {
-      return new Date(b.timestamp) - new Date(a.timestamp);
+    if (orderBy === 'reviews') {
+      return b.quantidade_avaliacoes - a.quantidade_avaliacoes;
     }
 
     return 0;
@@ -127,28 +135,34 @@ export default function SearchTable({data, loading, setOpenedDeleteMenu, selecte
     >
       <Table.Td onClick={(e) => e.stopPropagation()}>
         <Checkbox
-          aria-label="Select row"
+          aria-label="Selecionar empresa"
           checked={selectedRows.includes(row.id)}
           onChange={() => toggleRow(row.id)}
         />
       </Table.Td>
 
-      <Table.Td>{row.municipio}</Table.Td>
-      <Table.Td>{row.setor}</Table.Td>
-      <Table.Td>{row.total_correspondencias}</Table.Td>
-      <Table.Td>{row.total_empresas}</Table.Td>
-      <Table.Td>{row.total_leads}</Table.Td>
+      <Table.Td>{row.nome_empresa}</Table.Td>
+      <Table.Td>{row.telefone}</Table.Td>
+      <Table.Td>{row.segmento}</Table.Td>
+      <Table.Td>{row.ia_score}</Table.Td>
       <Table.Td>
-        {row.search_status === "Success" && <IconCheck />}
-        {row.search_status === "Error" && <IconX />}
-        {row.search_status === "Processing" && <IconLoader />}
+        {row.site ? (
+          <IconCheck
+            size={18}
+            stroke={1.5}
+            color="gray"
+          />
+        ) : (
+          <IconX
+            size={18}
+            stroke={1.5}
+            color="gray"
+          />
+        )}
       </Table.Td>
-      <Table.Td>
-        {new Date(row.timestamp).toLocaleString('pt-BR', {
-          dateStyle: 'short',
-          timeStyle: 'short',
-        })}
-      </Table.Td>
+      <Table.Td>{row.avaliacao}</Table.Td>
+      <Table.Td>{row.quantidade_avaliacoes}</Table.Td>
+      <Table.Td>{row.endereco}</Table.Td>
     </Table.Tr>
   ));
 
@@ -160,14 +174,19 @@ export default function SearchTable({data, loading, setOpenedDeleteMenu, selecte
         radius="lg"
         withBorder
       >
-        <Group justify="space-between" gap="md" px="xs" mb="md">
+        <Group justify="space-between" gap="md" px="xs">
           <TextInput
             placeholder="Pesquisar em qualquer campo"
             flex={1}
             mb="md"
-            leftSection={<IconSearch size={16} stroke={1.5} />}
+            leftSection={
+              <IconSearch
+                size={16}
+                stroke={1.5}
+              />
+            }
             value={search}
-            onChange={(event) => setSearch(event.currentTarget.value)}
+            onChange={handleSearchChange}
           />
 
           <Menu
@@ -182,9 +201,15 @@ export default function SearchTable({data, loading, setOpenedDeleteMenu, selecte
                 color={orderBy ? "blue" : "gray"}
                 size="lg"
                 title="Opções de ordenação"
-                styles={{ root: { '&:focusVisible?': { outline: 'none' } } }}
+                styles={{
+                  root: {
+                    '&:focusVisible?': {
+                      outline: 'none'
+                    }
+                  }
+                }}
               >
-                <IconFilter size={20} stroke={1.5} />
+                <IconFilter size={20} stroke={1.5}/>
               </ActionIcon>
             </Menu.Target>
 
@@ -192,111 +217,128 @@ export default function SearchTable({data, loading, setOpenedDeleteMenu, selecte
               <Menu.Label>Ordenar por</Menu.Label>
 
               <Menu.Item
-                leftSection={<IconSortAscending size={14} />}
-                onClick={() => setOrderBy('municipio')}
+                leftSection={
+                  <IconSortAscending size={14} />
+                }
+                onClick={() => setOrderBy('name')}
                 rightSection={
-                  orderBy === 'municipio'
-                    ? <IconCheck size={14} color="var(--mantine-color-blue-filled)" />
+                  orderBy === 'name'
+                    ? (
+                      <IconCheck
+                        size={14}
+                        color="var(--mantine-color-blue-filled)"
+                      />
+                    )
                     : null
                 }
-                fw={orderBy === 'municipio' ? 600 : 400}
+                fw={orderBy === 'name' ? 600 : 400}
                 bg={
-                  orderBy === 'municipio'
+                  orderBy === 'name'
                     ? 'var(--mantine-color-blue-light)'
                     : undefined
                 }
               >
-                Município (A-Z)
+                Nome (A-Z)
               </Menu.Item>
 
               <Menu.Item
-                leftSection={<IconSortAscending size={14} />}
-                onClick={() => setOrderBy('setor')}
+                leftSection={
+                  <IconSortAscending size={14} />
+                }
+                onClick={() => setOrderBy('segment')}
                 rightSection={
-                  orderBy === 'setor'
-                    ? <IconCheck size={14} color="var(--mantine-color-blue-filled)" />
+                  orderBy === 'segment'
+                    ? (
+                      <IconCheck
+                        size={14}
+                        color="var(--mantine-color-blue-filled)"
+                      />
+                    )
                     : null
                 }
-                fw={orderBy === 'setor' ? 600 : 400}
+                fw={orderBy === 'segment' ? 600 : 400}
                 bg={
-                  orderBy === 'setor'
+                  orderBy === 'segment'
                     ? 'var(--mantine-color-blue-light)'
                     : undefined
                 }
               >
-                Setor (A-Z)
+                Segmento (A-Z)
               </Menu.Item>
 
               <Menu.Item
-                leftSection={<IconSortDescending size={14} />}
-                onClick={() => setOrderBy('correspondencias')}
+                leftSection={
+                  <IconSortDescending size={14} />
+                }
+                onClick={() => setOrderBy('score')}
                 rightSection={
-                  orderBy === 'correspondencias'
-                    ? <IconCheck size={14} color="var(--mantine-color-blue-filled)" />
+                  orderBy === 'score'
+                    ? (
+                      <IconCheck
+                        size={14}
+                        color="var(--mantine-color-blue-filled)"
+                      />
+                    )
                     : null
                 }
-                fw={orderBy === 'correspondencias' ? 600 : 400}
+                fw={orderBy === 'score' ? 600 : 400}
                 bg={
-                  orderBy === 'correspondencias'
+                  orderBy === 'score'
                     ? 'var(--mantine-color-blue-light)'
                     : undefined
                 }
               >
-                Correspondências (maior)
+                Score (maior)
               </Menu.Item>
 
               <Menu.Item
-                leftSection={<IconSortDescending size={14} />}
-                onClick={() => setOrderBy('empresas')}
+                leftSection={
+                  <IconSortDescending size={14} />
+                }
+                onClick={() => setOrderBy('rating')}
                 rightSection={
-                  orderBy === 'empresas'
-                    ? <IconCheck size={14} color="var(--mantine-color-blue-filled)" />
+                  orderBy === 'rating'
+                    ? (
+                      <IconCheck
+                        size={14}
+                        color="var(--mantine-color-blue-filled)"
+                      />
+                    )
                     : null
                 }
-                fw={orderBy === 'empresas' ? 600 : 400}
+                fw={orderBy === 'rating' ? 600 : 400}
                 bg={
-                  orderBy === 'empresas'
+                  orderBy === 'rating'
                     ? 'var(--mantine-color-blue-light)'
                     : undefined
                 }
               >
-                Empresas (maior)
+                Avaliação (maior)
               </Menu.Item>
 
               <Menu.Item
-                leftSection={<IconSortDescending size={14} />}
-                onClick={() => setOrderBy('leads')}
+                leftSection={
+                  <IconSortDescending size={14} />
+                }
+                onClick={() => setOrderBy('reviews')}
                 rightSection={
-                  orderBy === 'leads'
-                    ? <IconCheck size={14} color="var(--mantine-color-blue-filled)" />
+                  orderBy === 'reviews'
+                    ? (
+                      <IconCheck
+                        size={14}
+                        color="var(--mantine-color-blue-filled)"
+                      />
+                    )
                     : null
                 }
-                fw={orderBy === 'leads' ? 600 : 400}
+                fw={orderBy === 'reviews' ? 600 : 400}
                 bg={
-                  orderBy === 'leads'
+                  orderBy === 'reviews'
                     ? 'var(--mantine-color-blue-light)'
                     : undefined
                 }
               >
-                Leads (maior)
-              </Menu.Item>
-
-              <Menu.Item
-                leftSection={<IconSortDescending size={14} />}
-                onClick={() => setOrderBy('data')}
-                rightSection={
-                  orderBy === 'data'
-                    ? <IconCheck size={14} color="var(--mantine-color-blue-filled)" />
-                    : null
-                }
-                fw={orderBy === 'data' ? 600 : 400}
-                bg={
-                  orderBy === 'data'
-                    ? 'var(--mantine-color-blue-light)'
-                    : undefined
-                }
-              >
-                Data (mais recente)
+                Avaliações (maior)
               </Menu.Item>
 
               <Menu.Divider />
@@ -317,14 +359,14 @@ export default function SearchTable({data, loading, setOpenedDeleteMenu, selecte
           h="75vh"
           offsetScrollbars
         >
-          <Table miw={1100} highlightOnHover stickyHeader>
+          <Table miw={1300} highlightOnHover stickyHeader>
             <Table.Thead>
               <Table.Tr>
                 {selectedRows.length > 0 ? (
                   <Table.Th
-                    colSpan={8}
+                    colSpan={10}
                     style={{
-                      backgroundColor: 'var(--mantine-color-blue-light)',
+                      backgroundColor:'var(--mantine-color-blue-light)',
                     }}
                   >
                     <Group justify="flex-start" gap="md" px="xs">
@@ -332,14 +374,16 @@ export default function SearchTable({data, loading, setOpenedDeleteMenu, selecte
                         onChange={toggleAll}
                         checked={allVisibleSelected}
                         indeterminate={someVisibleSelected && !allVisibleSelected}
-                        aria-label="Selecionar todos"
+                        aria-label="Selecionar todas"
                       />
 
                       <ActionIcon
                         variant="filled"
                         color="red"
                         size="sm"
-                        onClick={() => setOpenedDeleteMenu(true)}
+                        onClick={() =>
+                          setOpenedDeleteMenu(true)
+                        }
                         title="Excluir selecionados"
                       >
                         <IconTrash size={16} />
@@ -355,22 +399,26 @@ export default function SearchTable({data, loading, setOpenedDeleteMenu, selecte
                     <Table.Th style={{ width: 40 }}>
                       <Checkbox
                         onChange={toggleAll}
-                        checked={selectedRows.length === data.length}
+                        checked={
+                          data.length > 0 &&
+                          selectedRows.length === data.length
+                        }
                         indeterminate={
                           selectedRows.length > 0 &&
                           selectedRows.length !== data.length
                         }
-                        aria-label="Select all rows"
+                        aria-label="Selecionar todas"
                       />
                     </Table.Th>
 
-                    <Table.Th>Município</Table.Th>
-                    <Table.Th>Setor</Table.Th>
-                    <Table.Th>Correspondências</Table.Th>
-                    <Table.Th>Empresas</Table.Th>
-                    <Table.Th>Leads</Table.Th>
-                    <Table.Th>Status</Table.Th>
-                    <Table.Th>Data</Table.Th>
+                    <Table.Th>Empresa</Table.Th>
+                    <Table.Th>Telefone</Table.Th>
+                    <Table.Th>Segmento</Table.Th>
+                    <Table.Th>Score</Table.Th>
+                    <Table.Th>Website</Table.Th>
+                    <Table.Th>Avaliação</Table.Th>
+                    <Table.Th>Avaliações</Table.Th>
+                    <Table.Th>Endereço</Table.Th>
                   </>
                 )}
               </Table.Tr>

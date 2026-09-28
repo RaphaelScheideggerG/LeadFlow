@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from datetime import datetime
 
 
 class Company(BaseModel):
@@ -25,7 +26,7 @@ class Company(BaseModel):
     latitude: float | None = None
     longitude: float | None = None
 
-    linha: int | None = None
+    timestamp: datetime | None = None
 
 class CompanyResponse(BaseModel):
     CompanyResponse: list[Company]

@@ -242,3 +242,29 @@ def buscas_detalhes(ids: list[int]) -> list[Search]:
     detailed_searches = search_repo.find_by_ids(banco, ids)
 
     return detailed_searches
+
+def empresas_detalhes(ids: list[int]) -> list[Company]:
+    banco = obter_conexao()
+
+    company_repo = CompanyRepository()
+    detailed_companies = company_repo.find_by_ids(banco, ids)
+
+    return detailed_companies
+
+def empresas_de_leads(lead_ids: list[int]) -> list[Company]:
+    banco = obter_conexao()
+
+    lead_repo = LeadRepository()
+    company_repo = CompanyRepository()
+
+    company_ids = lead_repo.find_company_ids_by_lead_ids(
+        banco,
+        lead_ids
+    )
+
+    companies = company_repo.find_by_ids(
+        banco,
+        company_ids
+    )
+
+    return companies
