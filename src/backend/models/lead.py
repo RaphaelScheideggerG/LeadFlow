@@ -19,6 +19,5 @@ class LeadResult(BaseModel):
     ia_score: float | None = None
     ia_justificativa: str | None = None
 
-
 class LeadResultResponse(BaseModel):
     results_response: list[LeadResult]

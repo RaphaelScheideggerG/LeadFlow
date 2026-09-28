@@ -30,9 +30,9 @@ export default function LeadTable({
   loading, 
   setOpenedDeleteMenu, 
   selectedRows, 
-  setSelectedRows
+  setSelectedRows,
+  setLeadsIDsToViewCompaniesDetails,
 }) {
-
   const [search, setSearch] = useState('');
   const [orderBy, setOrderBy] = useState('name')
   
@@ -45,7 +45,7 @@ export default function LeadTable({
   }
 
   const handleViewDetails = (lead) => {
-    console.log('Ver detalhes:', lead);
+    setLeadsIDsToViewCompaniesDetails([lead.id]);
   };
   
   const handleSearchChange = (event) => {

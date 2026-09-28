@@ -124,3 +124,19 @@ class LeadRepository:
         banco.commit()
 
         return deleted_ids
+
+    def find_company_ids_by_lead_ids(self, banco, lead_ids: list[int]) -> list[int]:
+        cursor = banco.cursor()
+
+        cursor.execute("""
+            SELECT company_id
+            FROM leads
+            WHERE id = ANY(%s)
+            ORDER BY id
+        """, (lead_ids,))
+
+        rows = cursor.fetchall()
+
+        cursor.close()
+
+        return [row[0] for row in rows]

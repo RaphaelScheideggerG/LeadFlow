@@ -11,16 +11,18 @@ class SearchRepository:
                 setor,
                 total_correspondencias,
                 total_empresas,
-                total_leads
+                total_leads,
+                search_status
             )
-            VALUES (%s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s)
             RETURNING id
         """, (
             search.municipio,
             search.setor,
             search.total_correspondencias,
             search.total_empresas,
-            search.total_leads
+            search.total_leads,
+            search.search_status
         ))
 
         search.id = cursor.fetchone()[0]
@@ -43,6 +45,7 @@ class SearchRepository:
                 total_correspondencias,
                 total_empresas,
                 total_leads,
+                search_status,
                 timestamp
             FROM searches
             ORDER BY timestamp DESC, id DESC
@@ -61,7 +64,9 @@ class SearchRepository:
                 total_correspondencias=row[3],
                 total_empresas=row[4],
                 total_leads=row[5],
-                timestamp=row[6]
+                search_status=row[6],
+                timestamp=row[7]
+
             )
 
             searches.append(search)
@@ -79,7 +84,8 @@ class SearchRepository:
                 setor = %s,
                 total_correspondencias = %s,
                 total_empresas = %s,
-                total_leads = %s
+                total_leads = %s,
+                search_status = %s
             WHERE id = %s
         """, (
             search.municipio,
@@ -87,6 +93,7 @@ class SearchRepository:
             search.total_correspondencias,
             search.total_empresas,
             search.total_leads,
+            search.search_status,
             search.id,
         ))
 
@@ -126,5 +133,42 @@ class SearchRepository:
         return [row[0] for row in rows]
 
 
-    def find_by_id(self, banco, id: int) -> Search | None:
-        ...
+    def find_by_ids(self, banco, ids: list[int]) -> list[Search]:
+        cursor = banco.cursor()
+
+        cursor.execute("""
+            SELECT
+                id,
+                municipio,
+                setor,
+                total_correspondencias,
+                total_empresas,
+                total_leads,
+                search_status,
+                timestamp
+            FROM searches
+            WHERE id = ANY(%s)
+            ORDER BY timestamp DESC, id DESC
+        """, (ids,))
+
+        rows = cursor.fetchall()
+
+        searches = []
+
+        for row in rows:
+            search = Search(
+                id=row[0],
+                municipio=row[1],
+                setor=row[2],
+                total_correspondencias=row[3],
+                total_empresas=row[4],
+                total_leads=row[5],
+                search_status=row[6],
+                timestamp=row[7]
+            )
+
+            searches.append(search)
+
+        cursor.close()
+
+        return searches

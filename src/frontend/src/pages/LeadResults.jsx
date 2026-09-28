@@ -5,16 +5,18 @@ import {
   Stack,
   ActionIcon,
   Group,
-  Card,
   Notification,
 } from '@mantine/core';
 
 import { useDisclosure } from '@mantine/hooks';
 import { IconMenu2 } from '@tabler/icons-react';
 
-import LeadTable from '../components/results/LeadTable';
+import LeadTable from '../components/results/tables/LeadTable';
 import SideMenu from '../components/SideMenu';
 import { DeleteMenu } from '../components/results/DeleteMenu';
+
+import CompanyDetailsMenu from '../components/results/details/CompanyDetailsMenu';
+
 
 export default function LeadResults() {
   const [opened, { open, close }] = useDisclosure(false);
@@ -25,6 +27,10 @@ export default function LeadResults() {
 
   const [openedDeleteMenu, setOpenedDeleteMenu] = useState(false);
   const [selectedRows, setSelectedRows] = useState([]);
+
+  const [openedDetailsMenu, setOpenedDetailsMenu] = useState(false)
+  const [leadsIDsToViewCompaniesDetails, setLeadsIDsToViewCompaniesDetails] = useState([]);
+  const [companiesDetails, setCompaniesDetails] = useState([]);
 
   const carregarLeads = async () => {
     try {
@@ -45,10 +51,41 @@ export default function LeadResults() {
     }
   };
 
-  useEffect(() => {
-    carregarLeads();
-  }, []);
+    const handleShowDetails = async () => {
+    setLoading(true);
 
+    try {
+      const response = await fetch(
+        'http://localhost:8000/companies-from-leads',
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ids: leadsIDsToViewCompaniesDetails,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail);
+      }
+
+      const detailedCompanies = await response.json();
+
+      setCompaniesDetails(detailedCompanies)
+      setOpenedDetailsMenu(true);
+
+    } catch (error) {
+      console.error('Erro ao mostrar detalhes:', error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   const handleDelete = async () => {
     setLoading(true);
     try {
@@ -59,15 +96,15 @@ export default function LeadResults() {
         },
         body: JSON.stringify(selectedRows),
       });
-
+      
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.detail);
       }
-
+      
       await carregarLeads();
       setSelectedRows([]);
-
+      
     } catch (error) {
       console.error('Erro ao deletar leads:', error);
       setError(error.message);
@@ -77,6 +114,18 @@ export default function LeadResults() {
     }
   };
 
+  useEffect(() => {
+    carregarLeads();
+  }, []);
+
+  useEffect(() => {
+    if (leadsIDsToViewCompaniesDetails.length === 0) {
+      return;
+    }
+
+    handleShowDetails();
+  }, [leadsIDsToViewCompaniesDetails]);
+  
   return (
     <Stack gap="lg" p="md">
       <SideMenu opened={opened} onClose={close} />
@@ -118,6 +167,13 @@ export default function LeadResults() {
         opened={openedDeleteMenu}
         onClose={() => setOpenedDeleteMenu(false)}
         onConfirm={handleDelete}
+        message={"Tem certeza que deseja deletar esta empresa? Esta ação é irreversível e os dados serão removidos do banco de dados."}
+      />
+
+      <CompanyDetailsMenu
+        opened={openedDetailsMenu}
+        onClose={() => setOpenedDetailsMenu(false)}
+        companies={companiesDetails}
       />
 
       <LeadTable
@@ -126,6 +182,7 @@ export default function LeadResults() {
         setOpenedDeleteMenu={setOpenedDeleteMenu}
         selectedRows={selectedRows}
         setSelectedRows={setSelectedRows}
+        setLeadsIDsToViewCompaniesDetails={setLeadsIDsToViewCompaniesDetails}
       />
     </Stack>
   );

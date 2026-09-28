@@ -3,23 +3,22 @@ import {
   Table,
   ActionIcon,
   Group,
+  Card,
   Checkbox,
   Text,
+  TextInput,
   Loader,
   Center,
-  Card,
-  Menu,
   Stack,
-  TextInput,
+  Menu,
 } from '@mantine/core';
 
 import { 
   IconTrash, 
   IconSearch,
+  IconX, 
+  IconLoader,
   IconCheck, 
-  IconChevronUp, 
-  IconChevronDown,
-  IconSelector, 
   IconFilter,
   IconSortAscending,
   IconSortDescending,
@@ -28,9 +27,16 @@ import {
 import { useState } from 'react';
 
 
-export default function SearchTable({data, loading, setOpenedDeleteMenu, selectedRows, setSelectedRows}) {
+export default function SearchTable({
+  data,
+  loading, 
+  setOpenedDeleteMenu, 
+  selectedRows, 
+  setSelectedRows, 
+  setSearchesIDsToViewDetails
+}) {
   const [search, setSearch] = useState('');
-  const [orderBy, setOrderBy] = useState('municipio');  
+  const [orderBy, setOrderBy] = useState('data');  
   
     if (loading) {
       return (
@@ -41,7 +47,12 @@ export default function SearchTable({data, loading, setOpenedDeleteMenu, selecte
     }
   
   const handleViewDetails = (search) => {
-    console.log('Ver detalhes:', search);
+    setSearchesIDsToViewDetails([search.id]);
+  };
+
+  const handleSearchChange = (event) => {
+    const { value } = event.currentTarget;
+    setSearch(value);
   };
 
   const toggleRow = (id) => {
@@ -139,7 +150,11 @@ export default function SearchTable({data, loading, setOpenedDeleteMenu, selecte
       <Table.Td>{row.total_correspondencias}</Table.Td>
       <Table.Td>{row.total_empresas}</Table.Td>
       <Table.Td>{row.total_leads}</Table.Td>
-
+      <Table.Td>
+        {row.search_status === "Success" && <IconCheck />}
+        {row.search_status === "Error" && <IconX />}
+        {row.search_status === "Processing" && <IconLoader />}
+      </Table.Td>
       <Table.Td>
         {new Date(row.timestamp).toLocaleString('pt-BR', {
           dateStyle: 'short',
@@ -162,9 +177,14 @@ export default function SearchTable({data, loading, setOpenedDeleteMenu, selecte
             placeholder="Pesquisar em qualquer campo"
             flex={1}
             mb="md"
-            leftSection={<IconSearch size={16} stroke={1.5} />}
+            leftSection={
+              <IconSearch 
+                size={16} 
+                stroke={1.5} 
+              />
+            }
             value={search}
-            onChange={(event) => setSearch(event.currentTarget.value)}
+            onChange={handleSearchChange}
           />
 
           <Menu
@@ -366,6 +386,7 @@ export default function SearchTable({data, loading, setOpenedDeleteMenu, selecte
                     <Table.Th>Correspondências</Table.Th>
                     <Table.Th>Empresas</Table.Th>
                     <Table.Th>Leads</Table.Th>
+                    <Table.Th>Status</Table.Th>
                     <Table.Th>Data</Table.Th>
                   </>
                 )}

@@ -14,6 +14,7 @@ from src.backend.models.lead import LeadResult
 
 import os
 from dotenv import load_dotenv
+from fastapi import HTTPException
 
 
 def executar_busca(municipio: str, segmento: str):
@@ -49,6 +50,7 @@ def executar_busca(municipio: str, segmento: str):
     search = Search(
         municipio=municipio,
         setor=segmento,
+        search_status="Processing"
     )
 
     # Salva a busca no banco de dados
@@ -70,17 +72,25 @@ def executar_busca(municipio: str, segmento: str):
         names_in_storage=search_exclusion_list
     )
 
-    # realiza a coleta de empresas
-    raw_results, search_status, search_error = collector.collect_companies()
+    try:
+        # realiza a coleta de empresas
+        raw_results, search_status, search_error = collector.collect_companies()
 
-    print(60*"-")
+        print(60*"-")
 
-    if raw_results:
-        print(f"✅ {len(raw_results)} empresas coletadas.")
-        print(f"Status da busca: {search_status}")
-    else:
-        print("⚠️ Nenhum resultado encontrado.")
-        print(f"ERROR: {search_error}")
+        if raw_results:
+            print(f"✅ {len(raw_results)} empresas coletadas.")
+            print(f"Status da busca: {search_status}")
+            status_busca = search_status
+        else:
+            print("⚠️ Nenhum resultado encontrado.")
+            print(f"ERROR: {search_error}")
+            status_busca = search_error
+    except HTTPException:
+        search.search_status = "Error"
+        print(f"⚠️ Atualizando Status da Busca para {search.search_status}")
+        search_repo.update(banco, search)
+        raise
 
     # armazena quantidade bruta de correspondências encontradas na busca
     total_bruto = len(raw_results)
@@ -127,6 +137,7 @@ def executar_busca(municipio: str, segmento: str):
     search.total_correspondencias = total_bruto
     search.total_empresas = total_empresas_salvas
     search.total_leads = total_leads_salvos
+    search.search_status = status_busca
     # atualiza a busca no banco
     search_repo.update(banco, search)
 
@@ -222,3 +233,38 @@ def excluir_leads(ids: list[int]) -> list[Lead]:
     lead_repo = LeadRepository()
     deleted = lead_repo.delete_many(banco, ids)
     return deleted
+
+
+def buscas_detalhes(ids: list[int]) -> list[Search]:
+    banco = obter_conexao()
+
+    search_repo = SearchRepository()
+    detailed_searches = search_repo.find_by_ids(banco, ids)
+
+    return detailed_searches
+
+def empresas_detalhes(ids: list[int]) -> list[Company]:
+    banco = obter_conexao()
+
+    company_repo = CompanyRepository()
+    detailed_companies = company_repo.find_by_ids(banco, ids)
+
+    return detailed_companies
+
+def empresas_de_leads(lead_ids: list[int]) -> list[Company]:
+    banco = obter_conexao()
+
+    lead_repo = LeadRepository()
+    company_repo = CompanyRepository()
+
+    company_ids = lead_repo.find_company_ids_by_lead_ids(
+        banco,
+        lead_ids
+    )
+
+    companies = company_repo.find_by_ids(
+        banco,
+        company_ids
+    )
+
+    return companies

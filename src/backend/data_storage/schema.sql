@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS searches (
     total_correspondencias INTEGER NOT NULL DEFAULT 0,
     total_empresas INTEGER NOT NULL DEFAULT 0,
     total_leads INTEGER NOT NULL DEFAULT 0,
+    search_status TEXT DEFAULT NULL,
 
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -47,12 +48,3 @@ CREATE TABLE IF NOT EXISTS leads (
 
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
-ALTER TABLE companies
-DROP CONSTRAINT companies_search_id_fkey;
-
-ALTER TABLE companies
-ADD CONSTRAINT companies_search_id_fkey
-FOREIGN KEY (search_id)
-REFERENCES searches(id)
-ON DELETE CASCADE;

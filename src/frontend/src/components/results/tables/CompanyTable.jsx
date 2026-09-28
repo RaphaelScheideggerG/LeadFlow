@@ -17,6 +17,7 @@ import {
   IconTrash,
   IconSearch,
   IconX,
+  IconLoader,
   IconCheck,
   IconFilter,
   IconSortAscending,
@@ -31,7 +32,8 @@ export default function CompanyTable({
   loading,
   setOpenedDeleteMenu,
   selectedRows,
-  setSelectedRows
+  setSelectedRows,
+  setCompaniesIDsToViewDetails
 }) {
   const [search, setSearch] = useState('');
   const [orderBy, setOrderBy] = useState('name');
@@ -45,7 +47,7 @@ export default function CompanyTable({
   }
 
   const handleViewDetails = (company) => {
-    console.log('Ver detalhes:', company);
+    setCompaniesIDsToViewDetails([company.id]);
   };
 
   const handleSearchChange = (event) => {
