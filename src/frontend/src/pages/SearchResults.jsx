@@ -5,15 +5,16 @@ import {
   Stack, 
   ActionIcon, 
   Group, 
-  Notification
+  Notification,
 } from '@mantine/core';
+import { useNavigate } from "react-router-dom";
 
 import { useDisclosure } from '@mantine/hooks';
 import { IconMenu2 } from '@tabler/icons-react';
 
 import SearchTable from '../components/results/tables/SearchTable';
 import SideMenu from '../components/SideMenu';
-import { DeleteMenu } from '../components/results/DeleteMenu';
+import DeleteMenu from '../components/results/DeleteMenu';
 
 import SearchDetailsMenu from '../components/results/details/SearchDetailsMenu'
 
@@ -31,7 +32,43 @@ export default function SearchResults() {
   const [searchesIDsToViewDetails, setSearchesIDsToViewDetails] = useState([]);
   const [searchesDetails, setSearchesDetails] = useState([]);
 
-  
+  const navigate = useNavigate();
+
+  const handleViewCompanies = (searchIDs) => {
+      const params = new URLSearchParams();
+
+      if (Array.isArray(searchIDs)) {
+          searchIDs.forEach(id => {
+              params.append('search_ids', id);
+          });
+      } else if (searchIDs != null) {
+          params.append('search_ids', searchIDs);
+      }
+
+      navigate({
+          pathname: '/resultados/empresas',
+          search: `?${params.toString()}`
+      });
+  };
+
+  const handleViewLeads = (searchIDs) => {
+      const params = new URLSearchParams();
+
+      if (Array.isArray(searchIDs)) {
+          searchIDs.forEach(id => {
+              params.append('search_ids', id);
+          });
+      } else if (searchIDs != null) {
+          params.append('search_ids', searchIDs);
+      }
+
+      navigate({
+          pathname: '/resultados/leads',
+          search: `?${params.toString()}`
+      });
+  };
+
+
   const carregarBuscas = async () => {
     try {
       const response = await fetch('http://localhost:8000/searches');
@@ -156,6 +193,8 @@ export default function SearchResults() {
         opened={openedDetailsMenu}
         onClose={() => setOpenedDetailsMenu(false)}
         searches={searchesDetails}
+        onConfirmViewCompanies={handleViewCompanies}
+        onConfirmViewLeads={handleViewLeads}
       />
 
       <SearchTable

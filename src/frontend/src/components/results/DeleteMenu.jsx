@@ -1,6 +1,6 @@
 import { Modal, Button, Group, Text } from '@mantine/core';
 
-export function DeleteMenu({ opened, onClose, onConfirm, message }) {
+export default function DeleteMenu({ opened, onClose, onConfirm, message }) {
   return (
     <Modal
       opened={opened}
