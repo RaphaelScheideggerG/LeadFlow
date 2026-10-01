@@ -12,6 +12,7 @@ export default function SearchDetailsModal({
     onClose,
     searches,
     onConfirmViewCompanies,
+    onConfirmViewLeads,
 }) {
     if (!searches || searches.length === 0) {
         return null;
@@ -29,6 +30,11 @@ export default function SearchDetailsModal({
         >
             <Stack gap="md">
                 <Stack gap={4}>
+                    <Text c="dimmed" size="sm">
+                        ID da busca
+                    </Text>
+                    <Text>{search.id}</Text>
+
                     <Text c="dimmed" size="sm">
                         Município
                     </Text>
@@ -92,6 +98,11 @@ export default function SearchDetailsModal({
                         onClick={() => onConfirmViewCompanies(search.id)}
                     >
                         Visualizar empresas
+                    </Button>
+                    <Button
+                        onClick={() => onConfirmViewLeads(search.id)}
+                    >
+                        Visualizar leads
                     </Button>
                 </Group>
             </Stack>

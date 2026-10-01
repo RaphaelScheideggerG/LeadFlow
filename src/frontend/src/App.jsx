@@ -9,10 +9,23 @@ import SearchResults from './pages/SearchResults'
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path='/resultados/buscas' element={<SearchResults/>} />
-      <Route path="/resultados/empresas" element={<CompanyResults />} />
-      <Route path='/resultados/leads' element={<LeadResults/>} />
+      <Route 
+        path="/" 
+        element={<Home />} 
+      />
+      
+      <Route 
+        path='/resultados/buscas' 
+        element={<SearchResults/>} 
+      />
+      <Route 
+        path="/resultados/empresas/:id?" 
+        element={<CompanyResults />} 
+      />
+      <Route 
+        path='/resultados/leads/:id?' 
+        element={<LeadResults/>} 
+      />
     </Routes>
   );
 }

@@ -67,7 +67,8 @@ A tela de buscas possui:
 - seleção múltipla;
 - visualização dos detalhes da busca;
 - exclusão de buscas;
-- indicador visual de status da busca.
+- indicador visual de status da busca;
+- navegar para resultados de empresas e leads pelo menu detalhes de pesquisa;
 
 ![Histórico de buscas](docs/gifs/historicobuscas.gif)
 

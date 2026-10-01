@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+
 import {
   Title,
   Text,
@@ -13,8 +15,7 @@ import { IconMenu2 } from '@tabler/icons-react';
 
 import LeadTable from '../components/results/tables/LeadTable';
 import SideMenu from '../components/SideMenu';
-import { DeleteMenu } from '../components/results/DeleteMenu';
-
+import DeleteMenu from '../components/results/DeleteMenu';
 import CompanyDetailsMenu from '../components/results/details/CompanyDetailsMenu';
 
 
@@ -32,9 +33,21 @@ export default function LeadResults() {
   const [leadsIDsToViewCompaniesDetails, setLeadsIDsToViewCompaniesDetails] = useState([]);
   const [companiesDetails, setCompaniesDetails] = useState([]);
 
-  const carregarLeads = async () => {
+  const [searchParams] = useSearchParams();
+
+  const carregarLeads = async (searchIDs = []) => {
     try {
-      const response = await fetch('http://localhost:8000/leads');
+      const params = new URLSearchParams();
+
+      searchIDs.forEach(id => {
+        params.append('search_ids', id);
+      });
+
+      const url = searchIDs.length > 0
+      ? `http://localhost:8000/leads?${params.toString()}`
+      : `http://localhost:8000/leads`
+
+      const response = await fetch(url);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -115,7 +128,8 @@ export default function LeadResults() {
   };
 
   useEffect(() => {
-    carregarLeads();
+    const searchIDs = searchParams.getAll('search_ids');
+    carregarLeads(searchIDs);
   }, []);
 
   useEffect(() => {

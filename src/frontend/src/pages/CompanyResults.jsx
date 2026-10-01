@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+
 import {
   Title,
   Text,
@@ -13,7 +15,7 @@ import { IconMenu2 } from '@tabler/icons-react';
 
 import CompanyTable from '../components/results/tables/CompanyTable';
 import SideMenu from '../components/SideMenu';
-import { DeleteMenu } from '../components/results/DeleteMenu';
+import DeleteMenu from '../components/results/DeleteMenu';
 
 import CompanyDetailsMenu from '../components/results/details/CompanyDetailsMenu';
 
@@ -31,9 +33,21 @@ export default function CompanyResults() {
   const [companiesIDsToViewDetails, setCompaniesIDsToViewDetails] = useState([]);
   const [companiesDetails, setCompaniesDetails] = useState([]);
 
-  const carregarCompanies = async () => {
+  const [searchParams] = useSearchParams();
+
+  const carregarCompanies = async (searchIDs = []) => {
     try {
-      const response = await fetch('http://localhost:8000/companies');
+      const params = new URLSearchParams();
+
+      searchIDs.forEach(id => {
+        params.append('search_ids', id);
+      });
+
+      const url = searchIDs.length > 0
+        ? `http://localhost:8000/companies?${params.toString()}`
+        : 'http://localhost:8000/companies';
+
+      const response = await fetch(url);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -41,6 +55,7 @@ export default function CompanyResults() {
       }
 
       const dataFromApi = await response.json();
+
       setData(dataFromApi);
     } catch (error) {
       console.error('Erro ao buscar empresas:', error);
@@ -114,7 +129,9 @@ export default function CompanyResults() {
   };
 
   useEffect(() => {
-    carregarCompanies();
+    const searchIDs = searchParams.getAll('search_ids');
+
+    carregarCompanies(searchIDs);
   }, []);
 
   useEffect(() => {
