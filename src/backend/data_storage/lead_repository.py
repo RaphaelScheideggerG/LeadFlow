@@ -140,3 +140,44 @@ class LeadRepository:
         cursor.close()
 
         return [row[0] for row in rows]
+
+    def find_by_search_ids(
+        self,
+        banco,
+        search_ids: list[int]
+    ) -> list[LeadResult]:
+
+        cursor = banco.cursor()
+
+        cursor.execute("""
+            SELECT
+                leads.id,
+                leads.company_id,
+                companies.nome_empresa,
+                leads.ia_score,
+                leads.ia_justificativa
+            FROM leads
+            JOIN companies
+                ON leads.company_id = companies.id
+            WHERE companies.search_id = ANY(%s)
+            ORDER BY leads.ia_score DESC, leads.id DESC
+        """, (search_ids,))
+
+        rows = cursor.fetchall()
+
+        leads = []
+
+        for row in rows:
+            lead = LeadResult(
+                id=row[0],
+                company_id=row[1],
+                nome_empresa=row[2],
+                ia_score=row[3],
+                ia_justificativa=row[4]
+            )
+
+            leads.append(lead)
+
+        cursor.close()
+
+        return leads

@@ -193,24 +193,25 @@ def retornar_buscas() -> list[Search]:
 
     search_repo = SearchRepository()
     buscas = search_repo.list_all(banco)
-
     return buscas
 
-def retornar_companies() -> list[Company]:
+def retornar_companies(search_ids: list[int] | None) -> list[Company]:
     banco = obter_conexao()
-
     company_repo = CompanyRepository()
-    companies = company_repo.list_all(banco)
 
-    return companies
+    if search_ids is not None:
+        return company_repo.find_by_search_ids(banco, search_ids)
 
-def retornar_leads() -> list[LeadResult]:
+    return company_repo.list_all(banco)
+
+def retornar_leads(search_ids: list[int] | None) -> list[LeadResult]:
     banco = obter_conexao()
-
     lead_repo = LeadRepository()
-    leads = lead_repo.list_all_with_company(banco)
 
-    return leads
+    if search_ids is not None:
+        return lead_repo.find_by_search_ids(banco, search_ids)
+
+    return lead_repo.list_all_with_company(banco)
 
 
 def excluir_buscas(ids: list[int]) -> list[Search]:

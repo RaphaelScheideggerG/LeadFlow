@@ -2,6 +2,9 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import traceback
 
+from typing import Annotated
+from fastapi import Query
+
 from src.backend.data_storage.database import inicializar_banco
 
 from src.backend.models.company_search import CompanySearch
@@ -97,9 +100,9 @@ def list_searchs():
         )
 
 @app.get("/companies")
-def listar_companies():
+def listar_companies(search_ids: Annotated[list[int] | None, Query()] = None):
     try:
-        return retornar_companies()
+        return retornar_companies(search_ids)
 
     except Exception as e:
         print(f"⚠️ Erro ao listar companies: {e}")
@@ -110,9 +113,9 @@ def listar_companies():
         )
 
 @app.get("/leads")
-def listar_leads():
+def listar_leads(search_ids: Annotated[list[int] | None, Query()] = None):
     try:
-        return retornar_leads()
+        return retornar_leads(search_ids)
 
     except Exception as e:
         print(f"⚠️ Erro ao listar leads: {e}")
@@ -121,6 +124,7 @@ def listar_leads():
             status_code=500,
             detail=f"Erro ao listar leads: {e}"
         )
+
 
 @app.delete("/delete-searches")
 def deletar_buscas(ids: list[int]):
