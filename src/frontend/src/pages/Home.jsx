@@ -15,104 +15,49 @@ import SearchForm from '../components/principal/SearchForm';
 import FeedbackAlert from '../components/principal/FeedbackAlert';
 import SideMenu from '../components/SideMenu';
 
+import { useSearchCompanies, 
+  useIsSearchingCompanies, 
+  useLastSearchResult 
+} from '../mutations/useSearchCompanies';
+
+import {
+  useBackfillCompanies,
+  useIsBackfillingCompanies,
+  useLastBackfillResult,
+} from '../mutations/useBackfillCompanies';
+
+
 export default function Home() {
   const [municipio, setMunicipio] = useState("");
   const [setor, setSetor] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [resultado, setResultado] = useState(null);
   const [opened, { open, close }] = useDisclosure(false);
+  
+  const searchMutation = useSearchCompanies();
+  const isSearching = useIsSearchingCompanies();
+  const lastSearchResult = useLastSearchResult();
+  
+  const backfillMutation = useBackfillCompanies();
+  const isBackfilling = useIsBackfillingCompanies();
+  const lastBackfillResult = useLastBackfillResult();
+  
+  const loading = isSearching || isBackfilling;
 
-  async function run() {
-    setLoading(true);
-    setResultado(null);
 
-    try {
-      const response = await fetch("http://localhost:8000/search-companies", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          municipio,
-          setor,
-        }),
-      });
+  function runSearch() {
+    if (loading) return;
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || "Erro ao realizar a busca.");
-      }
-
-      setResultado({
-        tipo: "busca",
-        ...data,
-      });
-
-      setTimeout(() => {
-        setResultado(null);
-      }, 10000);
-
-    } catch (error) {
-      console.error("Erro na requisição:", error);
-
-      setResultado({
-        tipo: "erro",
-        mensagem: error.message,
-      });
-
-      setTimeout(() => {
-        setResultado(null);
-      }, 10000);
-
-    } finally {
-      setLoading(false);
-    }
+    searchMutation.mutate({
+      municipio,
+      setor,
+    });
   }
 
-  async function runBackfill() {
-    setLoading(true);
-    setResultado(null);
+  function runBackfill() {
+    if (loading) return;
 
-    try {
-      const response = await fetch("http://localhost:8000/backfill", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || "Erro ao realizar o backfill.");
-      }
-
-      setResultado({
-        tipo: "backfill",
-        ...data,
-      });
-
-      setTimeout(() => {
-        setResultado(null);
-      }, 10000);
-
-    } catch (error) {
-      console.error("Erro na requisição:", error);
-
-      setResultado({
-        tipo: "erro",
-        mensagem: error.message,
-      });
-
-      setTimeout(() => {
-        setResultado(null);
-      }, 10000);
-
-    } finally {
-      setLoading(false);
-    }
+    backfillMutation.mutate();
   }
+
   return (
       <Center h="100vh">
 
@@ -150,11 +95,14 @@ export default function Home() {
                 setMunicipio={setMunicipio}
                 setSetor={setSetor}
                 loading={loading}
-                onSearch={run}
+                onSearch={runSearch}
                 onBackfill={runBackfill}
               />
 
-              <FeedbackAlert resultado={resultado} />
+              <FeedbackAlert 
+                resultadoBusca={lastSearchResult} 
+                resultadoBackfill={lastBackfillResult} 
+              />
 
             </Stack>
           </Container>

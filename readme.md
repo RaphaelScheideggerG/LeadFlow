@@ -3,8 +3,41 @@
 **Pipeline inteligente para prospecção de empresas e geração de leads.**
 
 O **LeadFlow** automatiza parte do processo de prospecção comercial: coleta empresas a partir de buscas locais, normaliza e deduplica os resultados, enriquece os dados, classifica empresas com IA e persiste as informações em PostgreSQL.
+> 🚧 **Status: MVP operacional e dockerizado**
 
-> 🚧 **Status: MVP operacional**
+---
+
+# Tecnologias
+
+## Backend Stack
+
+- Python
+- FastAPI
+- Uvicorn
+- Pydantic
+- SerpAPI
+- PostgreSQL
+- psycopg2
+- Google Gemini
+- Tenacity
+- python-dotenv
+- pytest
+
+## Frontend Stack
+
+- React
+- Vite
+- React Router
+- TanStack Query (React Query)
+- Mutations / MutationCache
+- Mantine
+- @tabler/icons-react
+
+## Infraestrutura
+
+- Docker
+- Docker Compose
+- Nginx
 
 ---
 
@@ -22,9 +55,9 @@ O **LeadFlow** automatiza parte do processo de prospecção comercial: coleta em
 - [Relacionamentos e exclusão em cascata](#relacionamentos-e-exclusão-em-cascata)
 - [Armazenamento](#armazenamento)
 - [Frontend](#frontend)
+- [Gerenciamento das operações e caching](#gerenciamento-das-operações-e-caching)
 - [Como usar](#como-usar)
 - [Configuração](#configuração)
-- [Tecnologias](#tecnologias)
 - [Alternativas avaliadas](#alternativas-avaliadas)
 - [Web Scraping](#web-scraping)
 - [Estrutura do projeto](#estrutura-do-projeto)
@@ -40,13 +73,9 @@ O **LeadFlow** automatiza parte do processo de prospecção comercial: coleta em
 
 ![Interface do LeadFlow](docs/screenshots/frontendscreen.png)
 
-#### Busca concluída
+#### Feedback de resultados
 
-![Busca concluída](docs/screenshots/frontendsearchsuccessscreen.png)
-
-#### Backfill concluído
-
-![Backfill concluído](docs/screenshots/frontendbackfillsuccessscreen.png)
+![Busca concluída](docs/screenshots/frontendsuccessscreen.png)
 
 #### Tratamento de erros
 
@@ -175,6 +204,8 @@ Isso mantém a lógica de negócio independente de mecanismos de apresentação 
 
 A aplicação está organizada em camadas para separar interface, API, regras de negócio, persistência e integrações externas.
 
+No ambiente Dockerizado, o Nginx serve os arquivos estáticos do frontend e também atua como reverse proxy para as rotas `/api/`, encaminhando as requisições ao backend FastAPI.
+
 ```text
                          ┌──────────────────────┐
                          │      Frontend        │
@@ -182,6 +213,13 @@ A aplicação está organizada em camadas para separar interface, API, regras de
                          └──────────┬───────────┘
                                     │
                                   HTTP
+                                    ▼
+                         ┌──────────────────────┐
+                         │        Nginx         │
+                         │  static + reverse    │
+                         │       proxy /api     │
+                         └──────────┬───────────┘
+                                    │
                                     ▼
                          ┌──────────────────────┐
                          │       FastAPI        │
@@ -205,10 +243,10 @@ A aplicação está organizada em camadas para separar interface, API, regras de
                      ┌──────────────┼──────────────┐   │
                      │              │              │   │
                      ▼              ▼              ▼   ▼
-              ┌──────────────┐ ┌────────────┐ ┌──────────────┐
+              ┌───────────────┐ ┌─────────────┐ ┌──────────────┐
               │WebsiteResolver│ │CompanyScorer│ │ Deduplicação │
-              │    🌐 Site   │ │    IA 🤖   │ │  & Backfill  │
-              └──────────────┘ └────────────┘ └──────────────┘
+              │    🌐 Site    │ │    IA 🤖    │ │  & Backfill  │
+              └───────────────┘ └─────────────┘ └──────────────┘
                                                       │
                                                       ▼
                                               ┌──────────────┐
@@ -644,6 +682,8 @@ ScoreOutput
 
 A classificação funciona como uma camada adicional de qualificação. Depois da avaliação, empresas que atendem aos critérios definidos pelo sistema podem originar registros de `Lead`.
 
+O `CompanyScorer` utiliza **Tenacity** para controlar tentativas de chamadas ao Gemini. Em caso de falha, a operação pode ser repetida até três vezes utilizando espera com backoff e jitter, evitando um `sleep` fixo e mantendo a política de retry isolada da regra de negócio.
+
 ## Critérios utilizados pela IA
 
 A avaliação utiliza o seguinte contexto:
@@ -883,6 +923,7 @@ O frontend utiliza:
 - **Vite**
 - **Mantine**
 - **@tabler/icons-react**
+- **TanStack Query**
 
 A interface atualmente permite:
 
@@ -973,16 +1014,68 @@ Centraliza o componente de confirmação das operações de exclusão.
 
 ---
 
+# Gerenciamento das operações e caching
+
+O frontend utiliza **TanStack Query** para gerenciar as operações assíncronas de busca e Backfill.
+
+A decisão foi utilizar o `MutationCache` do TanStack Query em vez de introduzir um mecanismo adicional de estado global apenas para controlar operações em andamento.
+
+### Por que MutationCache?
+
+As buscas e o Backfill são operações de longa duração e podem continuar executando mesmo quando o componente que iniciou a operação é desmontado durante uma navegação interna.
+
+Com o `QueryClient` no topo da aplicação:
+
+```text
+Home
+ │
+ ├── inicia busca
+ │
+ ▼
+MutationCache
+ │
+ ├── pending
+ ├── success
+ └── error
+```
+
+O estado da operação permanece associado ao cache do `QueryClient`, e não ao ciclo de vida da página.
+
+Isso permite:
+
+- manter o indicador de operação em andamento durante navegações internas;
+- impedir buscas e Backfills concorrentes;
+- recuperar o último estado conhecido da operação ao retornar à Home;
+- disponibilizar `status`, `data` e `error` para o componente de feedback.
+
+A implementação utiliza:
+
+```text
+useMutation
+useIsMutating
+useMutationState
+```
+
+O cache é **apenas em memória**. Portanto, uma navegação interna preserva as mutations, mas um recarregamento completo da página (`F5`) reinicia o estado em memória.
+
+As mutations inativas possuem:
+
+```text
+gcTime = 60 segundos
+```
+
+Não foi adotada persistência em `localStorage`, IndexedDB ou outro armazenamento permanente porque o estado dessas operações não precisa sobreviver a um recarregamento completo da aplicação.
+
+---
+
 # Como usar
 
 ## Pré-requisitos
 
-- Python 3.10+
-- Node.js / npm
 - Docker
 - Docker Compose
 - Chave da SerpAPI
-- Credenciais necessárias para o Gemini
+- Chave da API do Gemini
 
 ## 1. Clone o projeto
 
@@ -991,72 +1084,63 @@ git clone <URL_DO_REPOSITORIO>
 cd LeadFlow
 ```
 
-## 2. Suba o PostgreSQL
+## 2. Configure as credenciais
 
-O projeto utiliza Docker Compose para executar o banco PostgreSQL.
-
-```bash
-docker compose up -d
-```
-
-Verifique se o container do banco está em execução antes de iniciar o backend.
-
-## 3. Configure o backend
-
-O ambiente Python fica dentro de `src/backend`.
-
-```bash
-cd src/backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-Volte para a raiz do projeto antes de iniciar a API:
-
-```bash
-cd ../..
-```
-
-## 4. Configure as credenciais
-
-Use `.env.example` como referência para criar o `.env` com as variáveis necessárias.
+Use `.env.example` como referência para criar o `.env` na raiz do projeto com as variáveis necessárias.
 
 > **Nunca versione credenciais reais, chaves de API ou arquivos `.env`.**
 
-## 5. Execute o backend
+## 3. Suba a aplicação
 
-Na raiz do projeto:
-
-```bash
-uvicorn src.backend.main:app --reload
-```
-
-A API será disponibilizada em:
-
-```text
-http://127.0.0.1:8000
-```
-
-A documentação interativa do FastAPI:
-
-```text
-http://127.0.0.1:8000/docs
-```
-
-## 6. Execute o frontend
-
-Em outro terminal:
+O ambiente principal do projeto é executado com Docker Compose.
 
 ```bash
-cd src/frontend
-npm install
-npm run dev
+docker compose up --build -d
 ```
 
-O Vite informará no terminal o endereço local da aplicação.
+O Compose inicializa:
 
-## 7. Usando o LeadFlow
+- PostgreSQL;
+- backend FastAPI;
+- frontend React servido pelo Nginx.
+
+## 4. Acesse o LeadFlow
+
+A interface web estará disponível em:
+
+```text
+http://localhost
+```
+
+A API FastAPI também é exposta para desenvolvimento e diagnóstico:
+
+```text
+http://localhost:8000
+```
+
+A documentação interativa:
+
+```text
+http://localhost:8000/docs
+```
+
+O Nginx serve o frontend e encaminha as requisições iniciadas em `/api/` para o backend.
+
+## 5. Verifique os logs
+
+Para acompanhar os serviços:
+
+```bash
+docker compose logs -f
+```
+
+Para interromper o ambiente:
+
+```bash
+docker compose down
+```
+
+## 6. Usando o LeadFlow
 
 Na interface:
 
@@ -1069,49 +1153,6 @@ O sistema executará o pipeline e exibirá o resultado ao final da operação.
 O botão **Backfill** executa o reprocessamento dos dados já armazenados.
 
 Durante operações em andamento, a interface bloqueia novas interações para evitar execuções concorrentes.
-
----
-
-# Configuração
-
-Os arquivos de exemplo esperados pelo projeto são:
-
-```text
-.env.example
-```
-
-Esse arquivo serve como referência para a configuração local.
-
-As credenciais reais devem permanecer fora do controle de versão.
-
----
-
-# Tecnologias
-
-## Backend
-
-- Python
-- FastAPI
-- Uvicorn
-- Pydantic
-- SerpAPI
-- PostgreSQL
-- psycopg2
-- Google Gemini
-- python-dotenv
-- pytest
-
-## Frontend
-
-- React
-- Vite
-- Mantine
-- @tabler/icons-react
-
-## Infraestrutura
-
-- Docker
-- Docker Compose
 
 ---
 
@@ -1164,41 +1205,59 @@ LeadFlow/
 │   │   ├── data_process/
 │   │   ├── data_storage/
 │   │   ├── tests/
-│   │   └── requirements.txt
+│   │   ├── ...
+|   |   └── dockerfile
 │   │
 │   └── frontend/
 │       ├── src/
 │       │   ├── App.jsx
 │       │   ├── main.jsx
+│       │   ├── api/
+│       │   ├── mutations/
 │       │   ├── pages/
 │       │   └── components/
 │       ├── package.json
-│       └── package-lock.json
+│       ├── package-lock.json
+│       └── dockerfile
+│
+├── docs/
+│   ├── screenshots/
+│   └── gifs/
 │
 ├── .env.example
 ├── .gitignore
 ├── docker-compose.yml
+├── requirements.txt
 └── README.md
 ```
 
----
+### Frontend
+
+A camada `api/` concentra as funções responsáveis pelas chamadas HTTP.
+
+A camada `mutations/` concentra as mutations do TanStack Query utilizadas para operações como busca e Backfill.
+
+O `main.jsx` cria o `QueryClient` e fornece o contexto do TanStack Query para toda a aplicação.
+
+### Backend
+
+A organização em `data_collect`, `data_process`, `data_storage`, `services` e `models` mantém separadas coleta externa, regras de processamento, persistência, orquestração e contratos de dados.
 
 # Próximos passos
 
 O MVP já cobre o fluxo principal de coleta, processamento, persistência, qualificação e exploração dos dados. As próximas evoluções podem ser escolhidas pelo impacto que trazem ao produto.
 
 - [ ] Implementar paginação para conjuntos maiores de dados.
-- [ ] Adicionar visualização múltipla de Companies e Leads.
 - [ ] Adicionar indicador visual para Leads novos ou ainda não visualizados.
 - [ ] Criar menu de configurações para gerenciamento de chaves e variáveis do sistema.
 - [ ] Expandir a navegação entre **Searches → Companies → Leads** e os caminhos de retorno.
-- [ ] Empacotar a aplicação para facilitar a distribuição ao usuário final.
+- [ ] Criar uma versão para deploy.
 
 ---
 
 # Status
 
-🚧 **MVP operacional**
+🚧 **MVP operacional e dockerizado**
 
 O LeadFlow atualmente integra coleta de dados, processamento, classificação por IA, persistência relacional, API e interface web em um único fluxo operacional.
 
@@ -1225,6 +1284,7 @@ O MVP já consegue:
 - selecionar e excluir múltiplos registros;
 - visualizar detalhes de Searches e Companies;
 - navegar de Leads para a Company associada;
-- exibir estados de loading e feedback de sucesso/erro.
+- exibir estados de loading e feedback de sucesso/erro;
+- manter o estado das operações de busca e Backfill durante navegações internas através do MutationCache do TanStack Query.
 
 O projeto segue em evolução, com foco em melhorar a exploração dos dados, ampliar o enriquecimento e transformar o MVP em uma ferramenta de prospecção mais completa.
