@@ -71,11 +71,21 @@ export default function SearchResults() {
 
   const carregarBuscas = async () => {
     try {
-      const response = await fetch('http://localhost:8000/searches');
+      const response = await fetch('/api/searches');
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail);
+        const contentType = response.headers.get('content-type') || '';
+
+        if (contentType.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'Erro ao listar buscas.');
+        }
+
+        throw new Error(
+          `Servidor indisponível (HTTP ${response.status}).`
+        );
       }
+
       const dataFromApi = await response.json();
       setData(dataFromApi);
     } catch (error) {
@@ -91,7 +101,7 @@ export default function SearchResults() {
     
     try {
       const response = await fetch(
-        'http://localhost:8000/searches-details',
+        '/api/searches-details',
         {
           method: "POST",
           headers: {
@@ -104,8 +114,16 @@ export default function SearchResults() {
       );
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail);
+        const contentType = response.headers.get('content-type') || '';
+
+        if (contentType.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'Erro ao mostrar detalhes da busca.');
+        }
+
+        throw new Error(
+          `Servidor indisponível (HTTP ${response.status}).`
+        );
       }
       
       const detailedSearches = await response.json();
@@ -124,7 +142,7 @@ export default function SearchResults() {
   const handleDelete = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/delete-searches', {
+      const response = await fetch('/api/delete-searches', {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -133,8 +151,16 @@ export default function SearchResults() {
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail);
+        const contentType = response.headers.get('content-type') || '';
+
+        if (contentType.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'Erro ao deletar buscas.');
+        }
+
+        throw new Error(
+          `Servidor indisponível (HTTP ${response.status}).`
+        );
       }
       
       await carregarBuscas();

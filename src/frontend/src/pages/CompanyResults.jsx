@@ -44,14 +44,22 @@ export default function CompanyResults() {
       });
 
       const url = searchIDs.length > 0
-        ? `http://localhost:8000/companies?${params.toString()}`
-        : 'http://localhost:8000/companies';
+        ? `/api/companies?${params.toString()}`
+        : '/api/companies';
 
       const response = await fetch(url);
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail);
+        const contentType = response.headers.get('content-type') || '';
+
+        if (contentType.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'Erro ao buscar empresas.');
+        }
+
+        throw new Error(
+          `Servidor indisponível (HTTP ${response.status}).`
+        );
       }
 
       const dataFromApi = await response.json();
@@ -70,7 +78,7 @@ export default function CompanyResults() {
 
     try {
       const response = await fetch(
-        'http://localhost:8000/companies-details',
+        '/api/companies-details',
         {
           method: "POST",
           headers: {
@@ -83,8 +91,16 @@ export default function CompanyResults() {
       );
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail);
+        const contentType = response.headers.get('content-type') || '';
+
+        if (contentType.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'Erro ao mostrar detalhes da empresa.');
+        }
+
+        throw new Error(
+          `Servidor indisponível (HTTP ${response.status}).`
+        );
       }
 
       const detailedCompanies = await response.json();
@@ -103,7 +119,7 @@ export default function CompanyResults() {
   const handleDelete = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/delete-companies', {
+      const response = await fetch('/api/delete-companies', {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -112,8 +128,16 @@ export default function CompanyResults() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail);
+        const contentType = response.headers.get('content-type') || '';
+
+        if (contentType.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'Erro ao deletar empresas.');
+        }
+
+        throw new Error(
+          `Servidor indisponível (HTTP ${response.status}).`
+        );
       }
 
       await carregarCompanies();

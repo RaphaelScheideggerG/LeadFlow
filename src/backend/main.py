@@ -1,9 +1,8 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 import traceback
 
 from typing import Annotated
-from fastapi import Query
 
 from src.backend.data_storage.database import inicializar_banco
 
@@ -37,7 +36,10 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[
+        "http://localhost", # Permissão para o frontend no container Docker
+        "http://localhost:5173", # Permissão para o frontend em desenvolvimento
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

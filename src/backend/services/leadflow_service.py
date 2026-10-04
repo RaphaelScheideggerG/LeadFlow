@@ -1,3 +1,6 @@
+import os
+from dotenv import load_dotenv
+
 from src.backend.data_collect.serp_api_collector import CompanyCollector
 from src.backend.data_process.data_processor import DataProcessor
 
@@ -12,8 +15,6 @@ from src.backend.models.company import Company
 from src.backend.models.lead import Lead
 from src.backend.models.lead import LeadResult
 
-import os
-from dotenv import load_dotenv
 from fastapi import HTTPException
 
 

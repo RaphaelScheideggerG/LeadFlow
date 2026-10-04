@@ -22,7 +22,7 @@ class CompanyCollector:
 
         self.client = serpapi.Client(api_key=self.api_key)
 
-    def collect_companies(self): # -> uma porrada de coisa:
+    def collect_companies(self):
         query = self._build_query()
 
         print(f"🔍 Buscando empresas: '{query}'")

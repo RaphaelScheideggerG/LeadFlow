@@ -2,7 +2,7 @@ from src.backend.models.company import Company
 from google import genai
 from google.genai import types
 from src.backend.models.score_output import ScoreOutput
-import time
+from tenacity import retry, stop_after_attempt, wait_exponential_jitter
 
 
 class CompanyScorer:
@@ -36,32 +36,34 @@ class CompanyScorer:
         )
 
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential_jitter(initial=2, max=10),
+        reraise=True,
+    )
+    def _generate_score(self, lead: Company):
+        return self.client.models.generate_content(
+            model=self.model_name,
+            contents=(
+                "Analise o seguinte Lead e forneça a pontuação:\n\n"
+                f"{lead.model_dump_json(indent=2)}"
+            ),
+            config=types.GenerateContentConfig(
+                system_instruction=self.prompt_input,
+                response_mime_type="application/json",
+                response_schema=ScoreOutput,
+                temperature=0.1,
+            ),
+        )
+
     def evaluate(self, lead: Company) -> ScoreOutput | None:
-        for attempt in range(3):
-            try:
-                response = self.client.models.generate_content(
-                    model=self.model_name,
-                    contents=(
-                        "Analise o seguinte Lead e forneça a pontuação:\n\n"
-                        f"{lead.model_dump_json(indent=2)}"
-                    ),
-                    config=types.GenerateContentConfig(
-                        system_instruction=self.prompt_input,
-                        response_mime_type="application/json",
-                        response_schema=ScoreOutput,
-                        temperature=0.1,
-                    ),
-                )
+        try:
+            response = self._generate_score(lead)
+            return response.parsed
 
-                return response.parsed
-
-            except Exception as error:
-                print(
-                    f"⚠️ Erro ao analisar '{lead.nome_empresa}' "
-                    f"(tentativa {attempt + 1}/3): {error}"
-                )
-
-                if attempt < 2:
-                    time.sleep(60)
-
-        return None
+        except Exception as error:
+            print(
+                f"⚠️ Erro ao analisar '{lead.nome_empresa}': {error}"
+            )
+            return None
+    

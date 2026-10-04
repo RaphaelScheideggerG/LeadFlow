@@ -35,6 +35,7 @@ export default function LeadResults() {
 
   const [searchParams] = useSearchParams();
 
+
   const carregarLeads = async (searchIDs = []) => {
     try {
       const params = new URLSearchParams();
@@ -44,14 +45,22 @@ export default function LeadResults() {
       });
 
       const url = searchIDs.length > 0
-      ? `http://localhost:8000/leads?${params.toString()}`
-      : `http://localhost:8000/leads`
+      ? `/api/leads?${params.toString()}`
+      : `/api/leads`
 
       const response = await fetch(url);
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail);
+        const contentType = response.headers.get('content-type') || '';
+
+        if (contentType.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'Erro ao buscar leads.');
+        }
+
+        throw new Error(
+          `Servidor indisponível (HTTP ${response.status}).`
+        );
       }
 
       const dataFromApi = await response.json();
@@ -69,7 +78,7 @@ export default function LeadResults() {
 
     try {
       const response = await fetch(
-        'http://localhost:8000/companies-from-leads',
+        '/api/companies-from-leads',
         {
           method: "POST",
           headers: {
@@ -82,8 +91,16 @@ export default function LeadResults() {
       );
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail);
+        const contentType = response.headers.get('content-type') || '';
+
+        if (contentType.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'Erro ao mostrar detalhes.');
+        }
+
+        throw new Error(
+          `Servidor indisponível (HTTP ${response.status}).`
+        );
       }
 
       const detailedCompanies = await response.json();
@@ -102,7 +119,7 @@ export default function LeadResults() {
   const handleDelete = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/delete-leads', {
+      const response = await fetch('/api/delete-leads', {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -111,8 +128,16 @@ export default function LeadResults() {
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail);
+        const contentType = response.headers.get('content-type') || '';
+
+        if (contentType.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'Erro ao deletar leads.');
+        }
+
+        throw new Error(
+          `Servidor indisponível (HTTP ${response.status}).`
+        );
       }
       
       await carregarLeads();
