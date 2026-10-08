@@ -956,6 +956,7 @@ src/frontend/src/
 ├── App.jsx
 ├── main.jsx
 ├── pages/
+|   ├── Home.jsx
 │   ├── SearchResults.jsx
 │   ├── CompanyResults.jsx
 │   └── LeadResults.jsx
